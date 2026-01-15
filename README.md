@@ -10,9 +10,9 @@ The chess board will be represented by a 8x8 array of peices. These peices resid
 
 ### Steps
 
-- Design a Game class that stores all relevent game information.
 - Design a Move class in conjucntion with the Game class to represent moves
-  - A locational struct will be used as to aid in move representation
+- Design a Game class that stores all relevent game information.
+ - A locational struct will be used as to aid in move representation
 - Design an algorithm to determine all possible next moves
 - Design an algorithm to determine legal next moves, if zero then checkmate
 - Add the actual "bot" part of the chess bot
