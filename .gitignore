@@ -1,0 +1,6 @@
+# Build directory
+build/
+build/*
+
+# Main compiled file
+main
