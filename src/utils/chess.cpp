@@ -1,4 +1,5 @@
 #include "chess.h"
+#include <cctype>
 #include <string>
 
 std::vector<std::pair<int, int>> get_piece_moves(Piece piece) {
@@ -76,6 +77,49 @@ char piece_to_string(Piece p) {
     }
 }
 
+Piece string_to_piece(char c) {
+    switch (c) {
+        case 'K':
+            return Piece::White_King;
+
+        case 'Q':
+            return Piece::White_Queen;
+
+        case 'B':
+            return Piece::White_Bishop;
+
+        case 'N':
+            return Piece::White_Knight;
+
+        case 'R':
+            return Piece::White_Rook;
+
+        case 'P':
+            return Piece::White_Pawn;
+
+        case 'k':
+            return Piece::Black_King;
+
+        case 'q':
+            return Piece::Black_Queen;
+
+        case 'b':
+            return Piece::Black_Bishop;
+
+        case 'n':
+            return Piece::Black_Knight;
+
+        case 'r':
+            return Piece::Black_Rook;
+
+        case 'p':
+            return Piece::Black_Pawn;
+
+        default:
+            return Piece::Empty;
+    }
+}
+
 std::string square_to_string(Square s) {
     if ( s.file == -1 || s.rank == -1 )
         return "-";
@@ -112,8 +156,10 @@ std::string Game::get_board_state() {
                 continue;
             }
 
-            if ( count > 0 )
+            if ( count > 0 ) {
                 state += std::to_string(count);
+                count = 0;
+            }
             
             state += m;
         }
@@ -146,14 +192,44 @@ std::string Game::get_board_state() {
 void Game::give_board_state(std::string state) {
     ToMove = true;
 
-    WhiteCastle = false;
-    WhiteLongCastle = false;
-    BlackCastle = false;
-    BlackLongCastle = false;
+    WhiteCastle = true;
+    WhiteLongCastle = true;
+    BlackCastle = true;
+    BlackLongCastle = true;
 
     en_passant = Square();
 
-    board = Board{}; // TODO: actually implement
+    int halfMove = 0;
+    int fullMove = 1;
+
+    board = Board{};
+    
+    int rank = 0, file = 0;
+
+    for (int i = 0; i < state.length(); i++) {
+        if ( state[i] == ' ' )
+            break;
+
+        if ( state[i] ==  '/' ) {
+            rank += 1;
+            file = 0;
+            std::cout << get_board_state() << std::endl;
+            continue;
+        }
+
+        if (std::isdigit(state[i])) {
+            int n = state[i] - '0'; // char "cast" to int
+            for (int j = 0; j < n; j++) {
+                board[rank][file] = Piece::Empty;
+                file++;
+            }
+            continue;
+        }
+
+        board[rank][file] = string_to_piece(state[i]);
+        file++;
+    }
+    // TODO: actually implement
 }
 
 Move Game::get_move() {

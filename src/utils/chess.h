@@ -48,7 +48,7 @@ enum class Piece {
     Black_Pawn,
 };
 
-// [0][0] is a8, and [7][7] is h1
+// [0][0] is a8, and [7][7] is h1, [rank][8 - file] (up-down)(left-right)
 using Board = std::array<std::array<Piece, 8>, 8>; // Defaults as Piece::Empty
 
 // This will take https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
