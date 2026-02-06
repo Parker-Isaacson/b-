@@ -5,7 +5,7 @@ TARGET   := main
 BUILD    := build
 SRC      := src
 
-SOURCES  := $(SRC)/main.cpp #$(SRC)/utils/chess.cpp
+SOURCES  := $(SRC)/main.cpp $(SRC)/utils/chess.cpp
 OBJECTS  := $(SOURCES:$(SRC)/%.cpp=$(BUILD)/%.o)
 
 # Default target

@@ -2,6 +2,7 @@
 #include <cassert>
 #include <array>
 #include <string>
+#include <vector>
 
 struct Square {
     uint8_t file = 0;
@@ -51,6 +52,7 @@ using Board = std::array<std::array<Piece, 8>, 8>; // Defaults as Piece::Empty
 // This will take https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
 class Game {
     private:
+        // -- REQUIRED
         Board board{};
 
         bool WhiteToMove = true;
@@ -63,8 +65,11 @@ class Game {
 
         Square en_passant{};
 
-        // Non-required, but very useful
+        // -- Inner functions
+        std::vector<Move> moves; // Legal move list
+
         bool update_board(Move move); // Checks validity of move provided, and updates board as provided
+        bool check_moves(); // Recalculate valid moves
 
     public:
         // Required notation
@@ -72,7 +77,7 @@ class Game {
         Game(std::string notation);
 
         std::string get_board_state(); // Creates and returns the board state in Forsyth-Edwards Notation
-        Game give_board_state(std::string state); // Returns a new game board from the state provided
+        void give_board_state(std::string state); // Returns a new game board from the state provided
         
         Move get_move(); // Gets the best move, this is the chess bot
         void give_move(Move move); // Updates the board with a provided move
