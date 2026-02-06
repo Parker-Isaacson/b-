@@ -6,7 +6,7 @@ std::vector<std::pair<int, int>> get_piece_moves(Piece piece) {
     switch (piece) {
         case Piece::White_King:
         case Piece::Black_King:
-            return {{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}};
+            return {{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}; // Does not include castling
 
         case Piece::White_Queen:
         case Piece::Black_Queen:
@@ -26,7 +26,7 @@ std::vector<std::pair<int, int>> get_piece_moves(Piece piece) {
 
         case Piece::White_Pawn:
         case Piece::Black_Pawn:
-            return {{1, 0}, {2, 0}};
+            return {{1, 0}}; // Does not include two moves forward, will be include if white is on the 2nd rank, or if black is on the 6th.
 
         case Piece::Empty:
         default:
@@ -128,6 +128,10 @@ std::string square_to_string(Square s) {
     return static_cast<char>(s.file + 97) + std::to_string(s.rank);
 }
 
+Square string_to_square(char file, char rank) {
+    return Square(rank - '0', file - 'a');
+}
+
 Game::Game() {
     board = {
         std::array<Piece, 8>{Piece::Black_Rook, Piece::Black_Knight, Piece::Black_Bishop, Piece::Black_Queen, Piece::Black_King, Piece::Black_Bishop, Piece::Black_Knight, Piece::Black_Rook},
@@ -180,7 +184,7 @@ std::string Game::get_board_state() {
     state += ( BlackCastle ) ? "k" : "";
     state += ( BlackLongCastle ) ? "q" : "";
 
-    state += ( ! (WhiteCastle && WhiteLongCastle && BlackCastle && BlackLongCastle ) ) ? "- " : " ";
+    state += ( ! (WhiteCastle || WhiteLongCastle || BlackCastle || BlackLongCastle ) ) ? "- " : " ";
 
     state += square_to_string(en_passant) + " ";
 
@@ -192,44 +196,84 @@ std::string Game::get_board_state() {
 void Game::give_board_state(std::string state) {
     ToMove = true;
 
-    WhiteCastle = true;
-    WhiteLongCastle = true;
-    BlackCastle = true;
-    BlackLongCastle = true;
+    WhiteCastle = false;
+    WhiteLongCastle = false;
+    BlackCastle = false;
+    BlackLongCastle = false;
 
     en_passant = Square();
 
-    int halfMove = 0;
-    int fullMove = 1;
+    halfMove = 0;
+    fullMove = 1;
 
     board = Board{};
     
-    int rank = 0, file = 0;
+    int i = 0;
 
-    for (int i = 0; i < state.length(); i++) {
-        if ( state[i] == ' ' )
-            break;
+    { // To scope rank and file
+        int rank = 0, file = 0;
+        for (; i < state.length(); i++) {
+            if ( state[i] == ' ' )
+                break;
 
-        if ( state[i] ==  '/' ) {
-            rank += 1;
-            file = 0;
-            std::cout << get_board_state() << std::endl;
-            continue;
-        }
-
-        if (std::isdigit(state[i])) {
-            int n = state[i] - '0'; // char "cast" to int
-            for (int j = 0; j < n; j++) {
-                board[rank][file] = Piece::Empty;
-                file++;
+            if ( state[i] ==  '/' ) {
+                rank += 1;
+                file = 0;
+                continue;
             }
-            continue;
-        }
 
-        board[rank][file] = string_to_piece(state[i]);
-        file++;
+            if (std::isdigit(state[i])) {
+                int n = state[i] - '0'; // char "cast" to int
+                for (int j = 0; j < n; j++) {
+                    board[rank][file] = Piece::Empty;
+                    file++;
+                }
+                continue;
+            }
+
+            board[rank][file] = string_to_piece(state[i]);
+            file++;
+        }
     }
-    // TODO: actually implement
+
+    if ( state[++i] == 'b' )
+        ToMove = false;
+
+    i += 2;
+    if ( state[i] != '-' ) {
+        if ( state[i] == 'K' ) {
+            WhiteCastle = true;
+            ++i;
+        }
+        if ( state[i] == 'Q' ) {
+            WhiteLongCastle = true;
+            ++i;
+        }
+        if ( state[i] == 'k' ) {
+            BlackCastle = true;
+            ++i;
+        }
+        if ( state[i] == 'q' ) {
+            BlackLongCastle = true;
+            ++i;
+        }
+    }
+
+    i += 1;
+    if ( state[i] != '-' ) {
+        en_passant = string_to_square(state[i], state[i + 1]);
+        ++i;
+    }
+
+    i += 2;
+    int j = 0;
+    for (; std::isdigit(state[i + j]); j++) { } // Find the length of the half move clock
+    halfMove = std::stoi(state.substr(i, j));
+    i += j + 1;
+
+    j = 0;
+    for (; std::isdigit(state[i + j]); j++) { } // Find the length of the full move clock
+    fullMove = std::stoi(state.substr(i, j));
 }
 
 Move Game::get_move() {
