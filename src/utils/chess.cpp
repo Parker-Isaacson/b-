@@ -208,7 +208,7 @@ void Game::give_board_state(std::string state) {
 
     board = Board{};
     
-    int i = 0;
+    size_t i = 0;
 
     { // To scope rank and file
         int rank = 0, file = 0;
@@ -280,13 +280,19 @@ Move Game::get_move() {
     return Move(Square(0, 0), Square(0, 0)); // TODO: actually implemnet
 }
 
-void Game::give_move(Move move) {
-    update_board(move);
+bool Game::give_move(Move move) {
+    return update_board(move);
 }
 
 bool Game::update_board(Move move) {
-    moves.clear();
-    return false; // TODO: Actually implement
+    for (Move m : moves) {
+        if (move == m) {
+            board[move.to.rank][move.to.file] = board[move.from.rank][move.from.file];
+            board[move.from.rank][move.from.file] = Piece::Empty;
+            return check_moves();
+        }
+    }
+    return false;
 }
 
 bool Game::check_moves() {

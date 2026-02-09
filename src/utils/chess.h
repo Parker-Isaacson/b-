@@ -14,6 +14,9 @@ struct Square {
     constexpr Square(int rank_, int file_)
         : file(file_), rank(rank_) { }
 
+    bool operator==(const Square& s) const {
+        return this->file == s.file && this->rank == s.rank;
+    }
 };
 
 // Using https://en.wikipedia.org/wiki/Universal_Chess_Interface
@@ -28,6 +31,10 @@ struct Move {
 
     constexpr Move(int from_rank, int from_file, int to_rank, int to_file)
         : Move(Square(from_rank, from_file), Square(to_rank, to_file)) {}
+
+    bool operator==(const Move& m) const {
+        return this->from == m.from && this->to == m.to;
+    }
 };
 
 enum class Piece {
@@ -54,7 +61,7 @@ using Board = std::array<std::array<Piece, 8>, 8>; // Defaults as Piece::Empty
 // This will take https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
 class Game {
     private:
-        // -- REQUIRED
+        // Board and related state
         Board board{};
 
         bool ToMove = true; // true for white, false for black
@@ -69,11 +76,11 @@ class Game {
         int halfMove = 0;
         int fullMove = 1;
 
-        // -- Inner functions
+        // Inner functions
         std::vector<Move> moves; // Legal move list
 
         bool update_board(Move move); // Checks validity of move provided, and updates board as provided
-        bool check_moves(); // Recalculate valid moves
+        bool check_moves(); // Clear and recalculate valid moves
 
     public:
         // Required notation
@@ -84,5 +91,5 @@ class Game {
         void give_board_state(std::string state); // Returns a new game board from the state provided
         
         Move get_move(); // Gets the best move, this is the chess bot
-        void give_move(Move move); // Updates the board with a provided move
+        bool give_move(Move move); // Updates the board with a provided move
 };
