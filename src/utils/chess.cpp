@@ -132,6 +132,29 @@ Square string_to_square(char file, char rank) {
     return Square(rank - '0', file - 'a');
 }
 
+Side Game::side_of_piece(Piece p) {
+    switch (p) {
+        case Piece::White_King:
+        case Piece::White_Queen:
+        case Piece::White_Bishop:
+        case Piece::White_Knight:
+        case Piece::White_Rook:
+        case Piece::White_Pawn:
+            return Side::White;
+
+        case Piece::Black_King:
+        case Piece::Black_Queen:
+        case Piece::Black_Bishop:
+        case Piece::Black_Knight:
+        case Piece::Black_Rook:
+        case Piece::Black_Pawn:
+            return Side::Black;
+
+        default:
+            return Side::Empty;
+    }
+}
+
 Game::Game() {
     board = {
         std::array<Piece, 8>{Piece::Black_Rook, Piece::Black_Knight, Piece::Black_Bishop, Piece::Black_Queen, Piece::Black_King, Piece::Black_Bishop, Piece::Black_Knight, Piece::Black_Rook},
@@ -177,7 +200,7 @@ std::string Game::get_board_state() {
             state += "/";
     }
 
-    state += ( ToMove ) ? " w " : " b ";
+    state += ( ToMove == Side::White) ? " w " : " b ";
 
     state += ( WhiteCastle ) ? "K" : "";
     state += ( WhiteLongCastle ) ? "Q" : "";
@@ -194,7 +217,7 @@ std::string Game::get_board_state() {
 }
 
 void Game::give_board_state(std::string state) {
-    ToMove = true;
+    ToMove = Side::White;
 
     WhiteCastle = false;
     WhiteLongCastle = false;
@@ -237,7 +260,7 @@ void Game::give_board_state(std::string state) {
     }
 
     if ( state[++i] == 'b' )
-        ToMove = false;
+        ToMove = Side::Black;
 
     i += 2;
     if ( state[i] != '-' ) {
@@ -296,5 +319,67 @@ bool Game::update_board(Move move) {
 }
 
 bool Game::check_moves() {
+    // Find all pieces that CAN attack the current king, ie pinned.
+    for (int r = 0; r < 8; r++) {
+        for (int f = 0; f < 8; f++) {
+            Side s = side_of_piece(board[r][f]); 
+            if ( s == ToMove || s == Side::Empty )
+                continue;
+        }
+    }
+    // Find the peices that are attacking the king, ie in check.
+    // 
+    // Find all moves that current player can do, regardless of pin or check.
+    // Subtract off the pinned pieces.
+    //
+    // If in check:
+    //      Find all moves that block, capture, or move from the current set.     
+    //
+    // Set this->moves to the set found.
+    // return true.
     return false; // TODO: Actually implement
+}
+
+std::pair<int, int> Game::find_pin(int rank, int file) {
+    switch (board[rank][file]) {
+        case Piece::White_Queen:
+        case Piece::Black_Queen: {
+            std::pair<int, int> rpin = find_rook_pin(rank, file);
+            if (rpin.first == -1)
+                return find_bishop_pin(rank, file);
+            else
+                return find_rook_pin(rank, file);
+        }
+
+        case Piece::White_Rook:
+        case Piece::Black_Rook:
+            return find_rook_pin(rank, file);
+
+        case Piece::White_Bishop:
+        case Piece::Black_Bishop:
+            return find_bishop_pin(rank, file);
+
+        case Piece::White_King:
+        case Piece::Black_King:
+        case Piece::White_Knight:
+        case Piece::Black_Knight:
+        case Piece::White_Pawn:
+        case Piece::Black_Pawn:
+        case Piece::Empty:
+        default:
+            return {-1, -1};
+    }
+}
+
+std::pair<int, int> Game::find_rook_pin(int rank, int file) {
+        // Go around in a loop, up, down, left, right
+        // If king is found break, record current i, and i_diff ( the direction I changes )
+        // Loop backwards finding and counting pieces, if a piece is found set it to the return piece
+        // if count > 2
+        //      return {-1, -1}
+        // return piece
+}
+
+std::pair<int, int> find_bishop_pin(int rank, int file) {
+
 }

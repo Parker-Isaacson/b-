@@ -37,6 +37,8 @@ struct Move {
     }
 };
 
+enum class Side { Empty, White, Black, };
+
 enum class Piece {
     Empty,
 
@@ -64,7 +66,7 @@ class Game {
         // Board and related state
         Board board{};
 
-        bool ToMove = true; // true for white, false for black
+        Side ToMove = Side::White; // true for white, false for black
 
         bool WhiteCastle = true;
         bool WhiteLongCastle = true;
@@ -81,6 +83,13 @@ class Game {
 
         bool update_board(Move move); // Checks validity of move provided, and updates board as provided
         bool check_moves(); // Clear and recalculate valid moves
+        Side side_of_piece(Piece p); // Checks if the current peice is part of the current player.
+
+        // These pin functions will return either {-1, -1} no pin, {pin_rank, pin_file} a pinned piece, or {king_rank, king_file} if the piece is in check
+        std::pair<int, int> find_pin(int rank, int file); // Checks for pin
+        std::pair<int, int> find_rook_pin(int rank, int file); // Checks for pin with rook
+        std::pair<int, int> find_bishop_pin(int rank, int file); // Checks for pin with rook
+        
 
     public:
         // Required notation
@@ -91,5 +100,5 @@ class Game {
         void give_board_state(std::string state); // Returns a new game board from the state provided
         
         Move get_move(); // Gets the best move, this is the chess bot
-        bool give_move(Move move); // Updates the board with a provided move
+        bool give_move(Move move); // Updates the board with a provided 
 };
