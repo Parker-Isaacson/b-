@@ -23,6 +23,9 @@ $(BUILD)/%.o: $(SRC)/%.cpp
 clean:
 	rm -rf $(BUILD) $(TARGET)
 
+run:
+	./$(TARGET)
+
 rebuild: clean all
 
 .PHONY: all clean rebuild
