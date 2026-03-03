@@ -14,7 +14,6 @@ struct Square {
     constexpr Square(int rank_, int file_)
         : file(file_), rank(rank_) {}
 
-    // Construct from algebraic string like "e4"
     explicit Square(const std::string& s) {
         if (s.size() != 2) return;
 
@@ -24,10 +23,9 @@ struct Square {
         if (f < 'a' || f > 'h' || r < '1' || r > '8') return;
 
         file = f - 'a';
-        rank = '8' - r;  // <-- inverse mapping
+        rank = '8' - r;
     }
 
-    // Convert to algebraic string
     std::string to_string() const {
         if (file < 0 || file > 7 || rank < 0 || rank > 7)
             return "-";
@@ -150,7 +148,6 @@ Piece string_to_piece(char c);
 struct Move {
     Square from{};
     Square to{};
-    // Promotion piece for pawn moves reaching last rank. Piece::Empty if not a promotion.
     Piece promotion = Piece::Empty;
 
     constexpr Move() = default;
@@ -181,13 +178,33 @@ struct Move {
 // [0][0] is a8, and [7][7] is h1, [rank][8 - file] (up-down)(left-right)
 using Board = std::array<std::array<Piece, 8>, 8>; // Defaults as Piece::Empty
 
+// For passing into children
+struct CastlingRights {
+    CastlingRights() = default;
+    CastlingRights(bool wk, bool wq, bool bk, bool bq)
+        : whiteKingSide(wk), whiteQueenSide(wq), blackKingSide(bk), blackQueenSide(bq) {}
+    bool whiteKingSide  = false;
+    bool whiteQueenSide = false;
+    bool blackKingSide  = false;
+    bool blackQueenSide = false;
+};
+
+struct PositionState {
+    PositionState() = default;
+    PositionState(Side tm, Square ep, CastlingRights cr)
+        : toMove(tm), enPassant(ep), castle(cr) {}
+    Side toMove = Side::Empty;
+    Square enPassant;
+    CastlingRights castle;
+};
+
 // This will take https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
 class Game {
     private:
         // Board and related state
         Board board{};
 
-        Side ToMove = Side::White; // true for white, false for black
+        Side ToMove = Side::White;
 
         bool WhiteCastle = true;
         bool WhiteLongCastle = true;
@@ -204,7 +221,9 @@ class Game {
 
         bool update_board(Move move); // Checks validity of move provided, and updates board as provided
         bool check_moves(); // Clear and recalculate valid moves
-        Side side_of_piece(Piece p); // Checks if the current peice is part of the current player.
+        static std::vector<Move> children(const Board& board, const PositionState& st); // Find all children moves of current position
+        static Side side_of_piece(Piece p); // Checks if the current peice is part of the current player.
+
     public:
         // Required notation
         Game();

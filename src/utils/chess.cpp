@@ -139,7 +139,7 @@ Side Game::side_of_piece(Piece p) {
         case Piece::Black_Pawn:
             return Side::Black;
 
-        default:
+  default:
             return Side::Empty;
     }
 }
@@ -156,7 +156,6 @@ Game::Game() {
         std::array<Piece, 8>{Piece::White_Rook, Piece::White_Knight, Piece::White_Bishop, Piece::White_Queen, Piece::White_King, Piece::White_Bishop, Piece::White_Knight, Piece::White_Rook},
     };
 
-    // Generate initial move list
     check_moves();
 }
 
@@ -290,11 +289,19 @@ void Game::give_board_state(std::string state) {
     for (; std::isdigit(state[i + j]); j++) { } // Find the length of the full move clock
     fullMove = std::stoi(state.substr(i, j));
 
-    // Recompute moves for the side to move
     check_moves();
 }
 
+// https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning#Pseudocode
 Move Game::get_move() {
+    auto evaluate = [&](Board b) { // Assume this works for know
+
+    };
+
+    auto alphabeta = [&](Board node, int depth, double alpha, double beta, bool maxPlayer) {
+
+    };
+    
     return Move(Square(0, 0), Square(0, 0)); // TODO: actually implemnet
 }
 
@@ -305,6 +312,7 @@ bool Game::give_move(Move move) {
 bool Game::give_move(Square from, Square to, Piece promo) {
     return update_board(Move(from, to, promo));
 }
+
 bool Game::update_board(Move move) {
     for (const Move& m : moves) {
         bool same_squares = (move.from == m.from && move.to == m.to);
@@ -313,27 +321,22 @@ bool Game::update_board(Move move) {
 
         if (same_squares && promo_ok) {
             Move chosen = m;
-            // If caller didn't specify promotion, keep generated one (usually queen-first).
             if (move.promotion != Piece::Empty)
                 chosen.promotion = move.promotion;
 
             Piece moving = board[chosen.from.rank][chosen.from.file];
             Piece captured = board[chosen.to.rank][chosen.to.file];
 
-            // Preserve previous en-passant square for en-passant capture detection
             Square old_ep = en_passant;
 
-            // Halfmove clock resets on pawn moves or captures
             if (moving == Piece::White_Pawn || moving == Piece::Black_Pawn || captured != Piece::Empty)
                 halfMove = 0;
             else
                 ++halfMove;
 
-            // Execute move
             board[chosen.to.rank][chosen.to.file] = moving;
             board[chosen.from.rank][chosen.from.file] = Piece::Empty;
 
-            // Handle en-passant capture: pawn moves diagonally onto old_ep square while target is empty
             if ((moving == Piece::White_Pawn || moving == Piece::Black_Pawn) &&
                 captured == Piece::Empty &&
                 old_ep.rank != -1 && old_ep.file != -1 &&
@@ -344,29 +347,23 @@ bool Game::update_board(Move move) {
                     board[cap_rank][chosen.to.file] = Piece::Empty;
             }
 
-            // Clear en-passant by default; set again only on a double pawn push
             en_passant = Square();
 
-            // Set en-passant square on a double pawn push (square passed over)
             if (moving == Piece::White_Pawn && chosen.from.rank == 6 && chosen.to.rank == 4) {
                 en_passant = Square(5, chosen.from.file);
             } else if (moving == Piece::Black_Pawn && chosen.from.rank == 1 && chosen.to.rank == 3) {
                 en_passant = Square(2, chosen.from.file);
             }
 
-            // Update castling rights (basic: king/rook moves)
-            // Apply castling rook move if king moved two squares.
             if ((moving == Piece::White_King || moving == Piece::Black_King) &&
                 chosen.from.rank == chosen.to.rank &&
                 std::abs(chosen.to.file - chosen.from.file) == 2) {
                 int rank = chosen.from.rank;
-                // King-side
                 if (chosen.to.file == 6) {
                     Piece rook = board[rank][7];
                     board[rank][5] = rook;
                     board[rank][7] = Piece::Empty;
                 }
-                // Queen-side
                 if (chosen.to.file == 2) {
                     Piece rook = board[rank][0];
                     board[rank][3] = rook;
@@ -374,11 +371,9 @@ bool Game::update_board(Move move) {
                 }
             }
 
-            // Apply promotion (if any) after pawn move to last rank.
             if (moving == Piece::White_Pawn && chosen.to.rank == 0) {
                 Piece promo = chosen.promotion;
                 if (promo == Piece::Empty) promo = Piece::White_Queen;
-                // Safety: ensure white piece
                 if (side_of_piece(promo) != Side::White) promo = Piece::White_Queen;
                 board[chosen.to.rank][chosen.to.file] = promo;
             } else if (moving == Piece::Black_Pawn && chosen.to.rank == 7) {
@@ -388,7 +383,6 @@ bool Game::update_board(Move move) {
                 board[chosen.to.rank][chosen.to.file] = promo;
             }
 
-            // Update castling rights (king/rook moves, rook captures)
             if (moving == Piece::White_King) {
                 WhiteCastle = false;
                 WhiteLongCastle = false;
@@ -403,7 +397,6 @@ bool Game::update_board(Move move) {
                 if (chosen.from.rank == 0 && chosen.from.file == 7) BlackCastle = false;
             }
 
-            // If we captured a rook on its home square, remove that side's castling right.
             if (captured == Piece::White_Rook) {
                 if (chosen.to.rank == 7 && chosen.to.file == 0) WhiteLongCastle = false;
                 if (chosen.to.rank == 7 && chosen.to.file == 7) WhiteCastle = false;
@@ -412,7 +405,6 @@ bool Game::update_board(Move move) {
                 if (chosen.to.rank == 0 && chosen.to.file == 7) BlackCastle = false;
             }
 
-            // Advance move counters / toggle side
             if (ToMove == Side::Black)
                 ++fullMove;
             ToMove = (ToMove == Side::White) ? Side::Black : Side::White;
@@ -423,27 +415,33 @@ bool Game::update_board(Move move) {
     return false;
 }
 
-bool Game::check_moves() {
-    moves.clear();
 
-    // Generate pseudo-legal moves first, then filter out moves that
-    // leave the moving side's king in check.
+std::vector<Move> Game::children(const Board& board, const PositionState& st) {
+    std::vector<Move> legal;
     std::vector<Move> pseudo;
 
     auto in_bounds = [](int r, int f) {
         return r >= 0 && r < 8 && f >= 0 && f < 8;
     };
 
+    auto opponent = [&](Side s) {
+        if (s == Side::White) return Side::Black;
+        if (s == Side::Black) return Side::White;
+        return Side::Empty;
+    };
+
+    auto is_enemy = [&](Piece p) {
+        Side s = side_of_piece(p);
+        return s != Side::Empty && s != st.toMove;
+    };
+
     auto add_if_ok = [&](int fr, int ff, int tr, int tf) {
         if (!in_bounds(tr, tf)) return;
         Piece target = board[tr][tf];
-        if (side_of_piece(target) == ToMove) return; // can't land on own piece
+        if (side_of_piece(target) == st.toMove) return;
         pseudo.emplace_back(fr, ff, tr, tf);
     };
 
-    // "Pin" / ray helper: walk in a direction until blocked.
-    // If we hit enemy piece, include capture square and stop.
-    // If we hit own piece, stop without adding.
     auto pin_ray = [&](int fr, int ff, int dr, int df) {
         for (int step = 1; step < 8; ++step) {
             int tr = fr + dr * step;
@@ -456,16 +454,11 @@ bool Game::check_moves() {
                 continue;
             }
 
-            if (side_of_piece(target) != ToMove) {
+            if (side_of_piece(target) != st.toMove) {
                 pseudo.emplace_back(fr, ff, tr, tf);
             }
             break;
         }
-    };
-
-    auto is_enemy = [&](Piece p) {
-        Side s = side_of_piece(p);
-        return s != Side::Empty && s != ToMove;
     };
 
     auto attacked_by_board = [&](const Board& b, Side attacker, int sr, int sf) {
@@ -473,7 +466,6 @@ bool Game::check_moves() {
 
         // Pawn attacks
         if (attacker == Side::White) {
-            // White pawns attack one rank up (towards decreasing rank), so they come from sr+1
             int pr = sr + 1;
             if (pr < 8) {
                 if (sf - 1 >= 0 && b[pr][sf - 1] == Piece::White_Pawn) return true;
@@ -512,7 +504,7 @@ bool Game::check_moves() {
             }
         }
 
-        // Sliding attacks: rook/queen lines
+        // Sliding attacks
         auto ray_hits = [&](int dr, int df, bool rook_like, bool bishop_like) {
             for (int step = 1; step < 8; ++step) {
                 int r = sr + dr * step;
@@ -523,11 +515,11 @@ bool Game::check_moves() {
                 if (attacker == Side::White) {
                     if (rook_like && (p == Piece::White_Rook || p == Piece::White_Queen)) return true;
                     if (bishop_like && (p == Piece::White_Bishop || p == Piece::White_Queen)) return true;
-                } else if (attacker == Side::Black) {
+                } else {
                     if (rook_like && (p == Piece::Black_Rook || p == Piece::Black_Queen)) return true;
                     if (bishop_like && (p == Piece::Black_Bishop || p == Piece::Black_Queen)) return true;
                 }
-                return false; // blocked by first piece
+                return false;
             }
             return false;
         };
@@ -544,30 +536,71 @@ bool Game::check_moves() {
         return false;
     };
 
-    auto attacked_by = [&](Side attacker, int sr, int sf) {
-        return attacked_by_board(board, attacker, sr, sf);
+    auto find_king = [&](const Board& b, Side s, int& kr, int& kf) {
+        Piece king = (s == Side::White) ? Piece::White_King : Piece::Black_King;
+        for (int r = 0; r < 8; ++r)
+            for (int f = 0; f < 8; ++f)
+                if (b[r][f] == king) { kr = r; kf = f; return true; }
+        return false;
     };
 
-    auto opponent = [&](Side s) {
-        if (s == Side::White) return Side::Black;
-        if (s == Side::Black) return Side::White;
-        return Side::Empty;
+    auto apply_move_on = [&](Board& b, const Move& m) {
+        Piece moving   = b[m.from.rank][m.from.file];
+        Piece captured = b[m.to.rank][m.to.file];
+
+        b[m.to.rank][m.to.file] = moving;
+        b[m.from.rank][m.from.file] = Piece::Empty;
+
+        // en-passant capture (use st.enPassant, not Game::en_passant)
+        if ((moving == Piece::White_Pawn || moving == Piece::Black_Pawn) &&
+            captured == Piece::Empty &&
+            st.enPassant.is_valid() &&
+            m.to == st.enPassant &&
+            std::abs(m.to.file - m.from.file) == 1) {
+            int cap_rank = (moving == Piece::White_Pawn) ? (m.to.rank + 1) : (m.to.rank - 1);
+            if (cap_rank >= 0 && cap_rank < 8)
+                b[cap_rank][m.to.file] = Piece::Empty;
+        }
+
+        // castling rook move
+        if ((moving == Piece::White_King || moving == Piece::Black_King) &&
+            m.from.rank == m.to.rank &&
+            std::abs(m.to.file - m.from.file) == 2) {
+            int rank = m.from.rank;
+            if (m.to.file == 6) { // king-side
+                b[rank][5] = b[rank][7];
+                b[rank][7] = Piece::Empty;
+            } else if (m.to.file == 2) { // queen-side
+                b[rank][3] = b[rank][0];
+                b[rank][0] = Piece::Empty;
+            }
+        }
+
+        // promotion
+        if (moving == Piece::White_Pawn && m.to.rank == 0) {
+            Piece promo = (m.promotion == Piece::Empty) ? Piece::White_Queen : m.promotion;
+            if (side_of_piece(promo) != Side::White) promo = Piece::White_Queen;
+            b[m.to.rank][m.to.file] = promo;
+        } else if (moving == Piece::Black_Pawn && m.to.rank == 7) {
+            Piece promo = (m.promotion == Piece::Empty) ? Piece::Black_Queen : m.promotion;
+            if (side_of_piece(promo) != Side::Black) promo = Piece::Black_Queen;
+            b[m.to.rank][m.to.file] = promo;
+        }
     };
 
     for (int r = 0; r < 8; ++r) {
         for (int f = 0; f < 8; ++f) {
             Piece p = board[r][f];
-            if (side_of_piece(p) != ToMove) continue;
+            if (side_of_piece(p) != st.toMove) continue;
 
-            // Full pawn moves (single, double, captures, en-passant)
             if (p == Piece::White_Pawn || p == Piece::Black_Pawn) {
-                int dir = (p == Piece::White_Pawn) ? -1 : 1;
+                int dir        = (p == Piece::White_Pawn) ? -1 : 1;
                 int start_rank = (p == Piece::White_Pawn) ? 6 : 1;
                 int promo_rank = (p == Piece::White_Pawn) ? 0 : 7;
 
                 auto add_pawn_move = [&](int fr, int ff, int tr, int tf) {
                     if (tr == promo_rank) {
-                        if (ToMove == Side::White) {
+                        if (st.toMove == Side::White) {
                             pseudo.emplace_back(fr, ff, tr, tf, Piece::White_Queen);
                             pseudo.emplace_back(fr, ff, tr, tf, Piece::White_Rook);
                             pseudo.emplace_back(fr, ff, tr, tf, Piece::White_Bishop);
@@ -583,31 +616,26 @@ bool Game::check_moves() {
                     }
                 };
 
-                // 1-step forward
                 int r1 = r + dir;
                 if (in_bounds(r1, f) && board[r1][f] == Piece::Empty) {
                     add_pawn_move(r, f, r1, f);
 
-                    // 2-step forward from start (must have both squares empty)
                     int r2 = r + 2 * dir;
                     if (r == start_rank && in_bounds(r2, f) && board[r2][f] == Piece::Empty) {
                         pseudo.emplace_back(r, f, r2, f);
                     }
                 }
 
-                // Captures + en-passant
                 for (int df : {-1, 1}) {
                     int tf = f + df;
                     int tr = r + dir;
                     if (!in_bounds(tr, tf)) continue;
 
                     Piece target = board[tr][tf];
-                    if (is_enemy(target)) {
-                        add_pawn_move(r, f, tr, tf);
-                    }
+                    if (is_enemy(target)) add_pawn_move(r, f, tr, tf);
 
-                    if (en_passant.rank != -1 && en_passant.file != -1 &&
-                        en_passant.rank == tr && en_passant.file == tf) {
+                    if (st.enPassant.rank != -1 && st.enPassant.file != -1 &&
+                        st.enPassant.rank == tr && st.enPassant.file == tf) {
                         pseudo.emplace_back(r, f, tr, tf);
                     }
                 }
@@ -615,70 +643,64 @@ bool Game::check_moves() {
                 continue;
             }
 
-            // Sliding pieces via ray-walk
             if (p == Piece::White_Rook || p == Piece::Black_Rook) {
-                pin_ray(r, f, 1, 0);
-                pin_ray(r, f, -1, 0);
-                pin_ray(r, f, 0, 1);
-                pin_ray(r, f, 0, -1);
+                pin_ray(r, f, 1, 0); pin_ray(r, f, -1, 0);
+                pin_ray(r, f, 0, 1); pin_ray(r, f, 0, -1);
                 continue;
             }
             if (p == Piece::White_Bishop || p == Piece::Black_Bishop) {
-                pin_ray(r, f, 1, 1);
-                pin_ray(r, f, 1, -1);
-                pin_ray(r, f, -1, 1);
-                pin_ray(r, f, -1, -1);
+                pin_ray(r, f, 1, 1); pin_ray(r, f, 1, -1);
+                pin_ray(r, f, -1, 1); pin_ray(r, f, -1, -1);
                 continue;
             }
             if (p == Piece::White_Queen || p == Piece::Black_Queen) {
-                // Rook directions
-                pin_ray(r, f, 1, 0);
-                pin_ray(r, f, -1, 0);
-                pin_ray(r, f, 0, 1);
-                pin_ray(r, f, 0, -1);
-                // Bishop directions
-                pin_ray(r, f, 1, 1);
-                pin_ray(r, f, 1, -1);
-                pin_ray(r, f, -1, 1);
-                pin_ray(r, f, -1, -1);
+                pin_ray(r, f, 1, 0); pin_ray(r, f, -1, 0);
+                pin_ray(r, f, 0, 1); pin_ray(r, f, 0, -1);
+                pin_ray(r, f, 1, 1); pin_ray(r, f, 1, -1);
+                pin_ray(r, f, -1, 1); pin_ray(r, f, -1, -1);
                 continue;
             }
 
-            // Knight/King (fixed deltas)
             if (p == Piece::White_King || p == Piece::Black_King) {
-                for (auto [dr, df] : get_piece_moves(p)) {
+                for (auto [dr, df] : get_piece_moves(p))
                     add_if_ok(r, f, r + dr, f + df);
-                }
 
-                // Castling (requires squares empty + not attacked)
-                Side opp = opponent(ToMove);
+                Side opp = opponent(st.toMove);
 
-                if (ToMove == Side::White && r == 7 && f == 4) {
-                    if (WhiteCastle &&
+                if (st.toMove == Side::White && r == 7 && f == 4) {
+                    if (st.castle.whiteKingSide &&
                         board[7][7] == Piece::White_Rook &&
                         board[7][5] == Piece::Empty && board[7][6] == Piece::Empty &&
-                        !attacked_by(opp, 7, 4) && !attacked_by(opp, 7, 5) && !attacked_by(opp, 7, 6)) {
+                        !attacked_by_board(board, opp, 7, 4) &&
+                        !attacked_by_board(board, opp, 7, 5) &&
+                        !attacked_by_board(board, opp, 7, 6)) {
                         pseudo.emplace_back(7, 4, 7, 6);
                     }
-                    if (WhiteLongCastle &&
+                    if (st.castle.whiteQueenSide &&
                         board[7][0] == Piece::White_Rook &&
                         board[7][1] == Piece::Empty && board[7][2] == Piece::Empty && board[7][3] == Piece::Empty &&
-                        !attacked_by(opp, 7, 4) && !attacked_by(opp, 7, 3) && !attacked_by(opp, 7, 2)) {
+                        !attacked_by_board(board, opp, 7, 4) &&
+                        !attacked_by_board(board, opp, 7, 3) &&
+                        !attacked_by_board(board, opp, 7, 2)) {
                         pseudo.emplace_back(7, 4, 7, 2);
                     }
                 }
 
-                if (ToMove == Side::Black && r == 0 && f == 4) {
-                    if (BlackCastle &&
+                if (st.toMove == Side::Black && r == 0 && f == 4) {
+                    if (st.castle.blackKingSide &&
                         board[0][7] == Piece::Black_Rook &&
                         board[0][5] == Piece::Empty && board[0][6] == Piece::Empty &&
-                        !attacked_by(opp, 0, 4) && !attacked_by(opp, 0, 5) && !attacked_by(opp, 0, 6)) {
+                        !attacked_by_board(board, opp, 0, 4) &&
+                        !attacked_by_board(board, opp, 0, 5) &&
+                        !attacked_by_board(board, opp, 0, 6)) {
                         pseudo.emplace_back(0, 4, 0, 6);
                     }
-                    if (BlackLongCastle &&
+                    if (st.castle.blackQueenSide &&
                         board[0][0] == Piece::Black_Rook &&
                         board[0][1] == Piece::Empty && board[0][2] == Piece::Empty && board[0][3] == Piece::Empty &&
-                        !attacked_by(opp, 0, 4) && !attacked_by(opp, 0, 3) && !attacked_by(opp, 0, 2)) {
+                        !attacked_by_board(board, opp, 0, 4) &&
+                        !attacked_by_board(board, opp, 0, 3) &&
+                        !attacked_by_board(board, opp, 0, 2)) {
                         pseudo.emplace_back(0, 4, 0, 2);
                     }
                 }
@@ -686,87 +708,35 @@ bool Game::check_moves() {
                 continue;
             }
 
-            for (auto [dr, df] : get_piece_moves(p)) {
+            // Knight (or any piece using jump table)
+            for (auto [dr, df] : get_piece_moves(p))
                 add_if_ok(r, f, r + dr, f + df);
-            }
         }
     }
 
-    // Filter pseudo-legal moves to legal moves
-    auto find_king = [&](const Board& b, Side s, int& kr, int& kf) {
-        Piece king = (s == Side::White) ? Piece::White_King : Piece::Black_King;
-        for (int r = 0; r < 8; ++r) {
-            for (int f = 0; f < 8; ++f) {
-                if (b[r][f] == king) {
-                    kr = r;
-                    kf = f;
-                    return true;
-                }
-            }
-        }
-        return false;
-    };
+    Side opp = opponent(st.toMove);
 
-    auto apply_move_on = [&](Board& b, const Move& m) {
-        Piece moving = b[m.from.rank][m.from.file];
-        Piece captured = b[m.to.rank][m.to.file];
-
-        // Move piece
-        b[m.to.rank][m.to.file] = moving;
-        b[m.from.rank][m.from.file] = Piece::Empty;
-
-        // En-passant capture (uses current game's en_passant square)
-        if ((moving == Piece::White_Pawn || moving == Piece::Black_Pawn) &&
-            captured == Piece::Empty &&
-            en_passant.is_valid() &&
-            m.to == en_passant &&
-            std::abs(m.to.file - m.from.file) == 1) {
-            int cap_rank = (moving == Piece::White_Pawn) ? (m.to.rank + 1) : (m.to.rank - 1);
-            if (cap_rank >= 0 && cap_rank < 8)
-                b[cap_rank][m.to.file] = Piece::Empty;
-        }
-
-        // Castling rook hop
-        if ((moving == Piece::White_King || moving == Piece::Black_King) &&
-            m.from.rank == m.to.rank &&
-            std::abs(m.to.file - m.from.file) == 2) {
-            int rank = m.from.rank;
-            if (m.to.file == 6) { // king-side
-                b[rank][5] = b[rank][7];
-                b[rank][7] = Piece::Empty;
-            } else if (m.to.file == 2) { // queen-side
-                b[rank][3] = b[rank][0];
-                b[rank][0] = Piece::Empty;
-            }
-        }
-
-        // Promotion
-        if (moving == Piece::White_Pawn && m.to.rank == 0) {
-            Piece promo = (m.promotion == Piece::Empty) ? Piece::White_Queen : m.promotion;
-            if (side_of_piece(promo) != Side::White) promo = Piece::White_Queen;
-            b[m.to.rank][m.to.file] = promo;
-        } else if (moving == Piece::Black_Pawn && m.to.rank == 7) {
-            Piece promo = (m.promotion == Piece::Empty) ? Piece::Black_Queen : m.promotion;
-            if (side_of_piece(promo) != Side::Black) promo = Piece::Black_Queen;
-            b[m.to.rank][m.to.file] = promo;
-        }
-    };
-
-    Side opp = opponent(ToMove);
     for (const Move& m : pseudo) {
         Board b = board;
         apply_move_on(b, m);
 
         int kr = -1, kf = -1;
-        if (!find_king(b, ToMove, kr, kf))
+        if (!find_king(b, st.toMove, kr, kf))
             continue;
 
         if (attacked_by_board(b, opp, kr, kf))
             continue;
 
-        moves.push_back(m);
+        legal.push_back(m);
     }
 
+    return legal;
+}
+
+bool Game::check_moves() {
+    moves.clear();
+
+    moves = children(board, PositionState(ToMove, en_passant, CastlingRights(WhiteCastle, WhiteLongCastle, BlackCastle, BlackLongCastle)));
     return true;
 }
 
