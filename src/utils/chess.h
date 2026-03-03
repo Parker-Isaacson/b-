@@ -123,7 +123,7 @@ inline constexpr Square H8{0, 7};
 
 enum class Side { Empty, White, Black, };
 
-enum class Piece {
+enum class Piece : int8_t {
     Empty,
 
     White_King,
@@ -178,7 +178,6 @@ struct Move {
 // [0][0] is a8, and [7][7] is h1, [rank][8 - file] (up-down)(left-right)
 using Board = std::array<std::array<Piece, 8>, 8>; // Defaults as Piece::Empty
 
-// For passing into children
 struct CastlingRights {
     CastlingRights() = default;
     CastlingRights(bool wk, bool wq, bool bk, bool bq)
@@ -193,9 +192,13 @@ struct PositionState {
     PositionState() = default;
     PositionState(Side tm, Square ep, CastlingRights cr)
         : toMove(tm), enPassant(ep), castle(cr) {}
+    PositionState(Side tm, Square ep, CastlingRights cr, int hm, int fm)
+        : toMove(tm), enPassant(ep), castle(cr), halfMove(hm), fullMove(fm) {}
     Side toMove = Side::Empty;
     Square enPassant;
     CastlingRights castle;
+    int halfMove = 0;
+    int fullMove = 1;
 };
 
 // This will take https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
@@ -204,22 +207,12 @@ class Game {
         // Board and related state
         Board board{};
 
-        Side ToMove = Side::White;
-
-        bool WhiteCastle = true;
-        bool WhiteLongCastle = true;
-        bool BlackCastle = true;
-        bool BlackLongCastle = true;
-
-        Square en_passant{};
-
-        int halfMove = 0;
-        int fullMove = 1;
+        PositionState state;
 
         // Inner functions
         std::vector<Move> moves; // Legal move list
 
-        bool update_board(Move move); // Checks validity of move provided, and updates board as provided
+        static std::pair<Board, PositionState> update_board(const Board& board, const PositionState& state, const Move& move, const std::vector<Move> moves); // Checks validity of move provided, and updates board as provided
         bool check_moves(); // Clear and recalculate valid moves
         static std::vector<Move> children(const Board& board, const PositionState& st); // Find all children moves of current position
         static Side side_of_piece(Piece p); // Checks if the current peice is part of the current player.

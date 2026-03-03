@@ -1,4 +1,5 @@
 #include "chess.h"
+#include <algorithm>
 #include <cctype>
 #include <cstdlib>
 #include <string>
@@ -156,13 +157,15 @@ Game::Game() {
         std::array<Piece, 8>{Piece::White_Rook, Piece::White_Knight, Piece::White_Bishop, Piece::White_Queen, Piece::White_King, Piece::White_Bishop, Piece::White_Knight, Piece::White_Rook},
     };
 
+    state = PositionState(Side::White, Square(), CastlingRights(true, true, true, true));
+
     check_moves();
 }
 
 Game::Game(std::string notation) { give_board_state(notation); }
 
 std::string Game::get_board_state() {
-    std::string state = "";
+    std::string notation = "";
 
     int rankCount = 0;
     for (std::array<Piece, 8> rank : board) {
@@ -175,50 +178,47 @@ std::string Game::get_board_state() {
             }
 
             if ( count > 0 ) {
-                state += std::to_string(count);
+                notation += std::to_string(count);
                 count = 0;
             }
             
-            state += m;
+            notation += m;
         }
         
         if ( count > 0 )
-            state += std::to_string(count);
+            notation += std::to_string(count);
         
         rankCount++;
 
         if ( rankCount != 8 )
-            state += "/";
+            notation += "/";
     }
 
-    state += ( ToMove == Side::White) ? " w " : " b ";
+    notation += ( state.toMove == Side::White) ? " w " : " b ";
 
-    state += ( WhiteCastle ) ? "K" : "";
-    state += ( WhiteLongCastle ) ? "Q" : "";
-    state += ( BlackCastle ) ? "k" : "";
-    state += ( BlackLongCastle ) ? "q" : "";
+    notation += ( state.castle.whiteKingSide ) ? "K" : "";
+    notation += ( state.castle.whiteQueenSide ) ? "Q" : "";
+    notation += ( state.castle.blackKingSide ) ? "k" : "";
+    notation += ( state.castle.blackQueenSide ) ? "q" : "";
 
-    state += ( ! (WhiteCastle || WhiteLongCastle || BlackCastle || BlackLongCastle ) ) ? "- " : " ";
+    notation += ( ! (state.castle.whiteKingSide || state.castle.whiteQueenSide || state.castle.blackKingSide || state.castle.blackQueenSide) ) ? "- " : " ";
 
-    state += en_passant.to_string() + " ";
+    notation += state.enPassant.to_string() + " ";
 
-    state += std::to_string(halfMove) + " " + std::to_string(fullMove);
+    notation += std::to_string(state.halfMove) + " " + std::to_string(state.fullMove);
 
-    return state;
+    return notation;
 }
 
-void Game::give_board_state(std::string state) {
-    ToMove = Side::White;
+void Game::give_board_state(std::string notation) {
+    state.toMove = Side::White;
 
-    WhiteCastle = false;
-    WhiteLongCastle = false;
-    BlackCastle = false;
-    BlackLongCastle = false;
+    state.castle.whiteKingSide = state.castle.whiteQueenSide = state.castle.blackKingSide = state.castle.blackQueenSide = false;
 
-    en_passant = Square();
+    state.enPassant = Square();
 
-    halfMove = 0;
-    fullMove = 1;
+    state.halfMove = 0;
+    state.fullMove = 1;
 
     board = Board{};
     
@@ -226,18 +226,18 @@ void Game::give_board_state(std::string state) {
 
     { // To scope rank and file
         int rank = 0, file = 0;
-        for (; i < state.length(); i++) {
-            if ( state[i] == ' ' )
+        for (; i < notation.length(); i++) {
+            if ( notation[i] == ' ' )
                 break;
 
-            if ( state[i] ==  '/' ) {
+            if ( notation[i] ==  '/' ) {
                 rank += 1;
                 file = 0;
                 continue;
             }
 
-            if (std::isdigit(state[i])) {
-                int n = state[i] - '0'; // char "cast" to int
+            if (std::isdigit(notation[i])) {
+                int n = notation[i] - '0'; // char "cast" to int
                 for (int j = 0; j < n; j++) {
                     board[rank][file] = Piece::Empty;
                     file++;
@@ -245,75 +245,85 @@ void Game::give_board_state(std::string state) {
                 continue;
             }
 
-            board[rank][file] = string_to_piece(state[i]);
+            board[rank][file] = string_to_piece(notation[i]);
             file++;
         }
     }
 
-    if ( state[++i] == 'b' )
-        ToMove = Side::Black;
+    if ( notation[++i] == 'b' )
+        state.toMove = Side::Black;
 
     i += 2;
-    if ( state[i] != '-' ) {
-        if ( state[i] == 'K' ) {
-            WhiteCastle = true;
+    if ( notation[i] != '-' ) {
+        if ( notation[i] == 'K' ) {
+            state.castle.whiteKingSide = true;
             ++i;
         }
-        if ( state[i] == 'Q' ) {
-            WhiteLongCastle = true;
+        if ( notation[i] == 'Q' ) {
+            state.castle.whiteQueenSide = true;
             ++i;
         }
-        if ( state[i] == 'k' ) {
-            BlackCastle = true;
+        if ( notation[i] == 'k' ) {
+            state.castle.blackKingSide = true;
             ++i;
         }
-        if ( state[i] == 'q' ) {
-            BlackLongCastle = true;
+        if ( notation[i] == 'q' ) {
+            state.castle.blackQueenSide = true;
             ++i;
         }
     }
 
     i += 1;
-    if ( state[i] != '-' ) {
-        en_passant = Square(state[i], state[i + 1]);
+    if ( notation[i] != '-' ) {
+        state.enPassant = Square(notation[i], notation[i + 1]);
         ++i;
     }
 
     i += 2;
     int j = 0;
-    for (; std::isdigit(state[i + j]); j++) { } // Find the length of the half move clock
-    halfMove = std::stoi(state.substr(i, j));
+    for (; std::isdigit(notation[i + j]); j++) { } // Find the length of the half move clock
+    state.halfMove = std::stoi(notation.substr(i, j));
     i += j + 1;
 
     j = 0;
-    for (; std::isdigit(state[i + j]); j++) { } // Find the length of the full move clock
-    fullMove = std::stoi(state.substr(i, j));
+    for (; std::isdigit(notation[i + j]); j++) { } // Find the length of the full move clock
+    state.fullMove = std::stoi(notation.substr(i, j));
 
     check_moves();
 }
 
 // https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning#Pseudocode
 Move Game::get_move() {
-    auto evaluate = [&](Board b) { // Assume this works for know
-
+    auto evaluate = [&](const Board& b, const PositionState& state) { // Assume this works for know
+        return (state.toMove == Side::White) ? 1 : -1;
     };
 
-    auto alphabeta = [&](Board node, int depth, double alpha, double beta, bool maxPlayer) {
+    // std::pair<double, Move>
+    auto alphabeta = [&](Board node, PositionState state, int depth, double alpha, double beta, bool maxPlayer) {
 
     };
     
     return Move(Square(0, 0), Square(0, 0)); // TODO: actually implemnet
 }
 
+
 bool Game::give_move(Move move) {
-    return update_board(move);
+    std::pair<Board, PositionState> bps = update_board(board, state, move, moves);
+    board = bps.first;
+    state = bps.second;
+    return true;
 }
 
 bool Game::give_move(Square from, Square to, Piece promo) {
-    return update_board(Move(from, to, promo));
+    std::pair<Board, PositionState> bps = update_board(board, state, Move(from, to, promo), moves);
+    board = bps.first;
+    state = bps.second;
+    return true;
 }
 
-bool Game::update_board(Move move) {
+std::pair<Board, PositionState> Game::update_board(const Board& oldBoard, const PositionState& oldState, const Move& move, const std::vector<Move> moves) {
+    Board board = oldBoard;
+    PositionState state = oldState;
     for (const Move& m : moves) {
         bool same_squares = (move.from == m.from && move.to == m.to);
         bool promo_ok = (move.promotion == m.promotion) ||
@@ -327,12 +337,12 @@ bool Game::update_board(Move move) {
             Piece moving = board[chosen.from.rank][chosen.from.file];
             Piece captured = board[chosen.to.rank][chosen.to.file];
 
-            Square old_ep = en_passant;
+            Square old_ep = state.enPassant;
 
             if (moving == Piece::White_Pawn || moving == Piece::Black_Pawn || captured != Piece::Empty)
-                halfMove = 0;
+                state.halfMove = 0;
             else
-                ++halfMove;
+                ++state.halfMove;
 
             board[chosen.to.rank][chosen.to.file] = moving;
             board[chosen.from.rank][chosen.from.file] = Piece::Empty;
@@ -347,12 +357,12 @@ bool Game::update_board(Move move) {
                     board[cap_rank][chosen.to.file] = Piece::Empty;
             }
 
-            en_passant = Square();
+            state.enPassant = Square();
 
             if (moving == Piece::White_Pawn && chosen.from.rank == 6 && chosen.to.rank == 4) {
-                en_passant = Square(5, chosen.from.file);
+                state.enPassant = Square(5, chosen.from.file);
             } else if (moving == Piece::Black_Pawn && chosen.from.rank == 1 && chosen.to.rank == 3) {
-                en_passant = Square(2, chosen.from.file);
+                state.enPassant = Square(2, chosen.from.file);
             }
 
             if ((moving == Piece::White_King || moving == Piece::Black_King) &&
@@ -384,35 +394,35 @@ bool Game::update_board(Move move) {
             }
 
             if (moving == Piece::White_King) {
-                WhiteCastle = false;
-                WhiteLongCastle = false;
+                state.castle.whiteKingSide = false;
+                state.castle.whiteQueenSide = false;
             } else if (moving == Piece::Black_King) {
-                BlackCastle = false;
-                BlackLongCastle = false;
+                state.castle.blackKingSide = false;
+                state.castle.blackQueenSide = false;
             } else if (moving == Piece::White_Rook) {
-                if (chosen.from.rank == 7 && chosen.from.file == 0) WhiteLongCastle = false;
-                if (chosen.from.rank == 7 && chosen.from.file == 7) WhiteCastle = false;
+                if (chosen.from.rank == 7 && chosen.from.file == 0) state.castle.whiteQueenSide = false;
+                if (chosen.from.rank == 7 && chosen.from.file == 7) state.castle.whiteKingSide = false;
             } else if (moving == Piece::Black_Rook) {
-                if (chosen.from.rank == 0 && chosen.from.file == 0) BlackLongCastle = false;
-                if (chosen.from.rank == 0 && chosen.from.file == 7) BlackCastle = false;
+                if (chosen.from.rank == 0 && chosen.from.file == 0) state.castle.blackQueenSide = false;
+                if (chosen.from.rank == 0 && chosen.from.file == 7) state.castle.blackKingSide = false;
             }
 
             if (captured == Piece::White_Rook) {
-                if (chosen.to.rank == 7 && chosen.to.file == 0) WhiteLongCastle = false;
-                if (chosen.to.rank == 7 && chosen.to.file == 7) WhiteCastle = false;
+                if (chosen.to.rank == 7 && chosen.to.file == 0) state.castle.whiteQueenSide = false;
+                if (chosen.to.rank == 7 && chosen.to.file == 7) state.castle.whiteKingSide = false;
             } else if (captured == Piece::Black_Rook) {
-                if (chosen.to.rank == 0 && chosen.to.file == 0) BlackLongCastle = false;
-                if (chosen.to.rank == 0 && chosen.to.file == 7) BlackCastle = false;
+                if (chosen.to.rank == 0 && chosen.to.file == 0) state.castle.blackQueenSide = false;
+                if (chosen.to.rank == 0 && chosen.to.file == 7) state.castle.blackKingSide = false;
             }
 
-            if (ToMove == Side::Black)
-                ++fullMove;
-            ToMove = (ToMove == Side::White) ? Side::Black : Side::White;
+            if (state.toMove == Side::Black)
+                ++state.fullMove;
+            state.toMove = (state.toMove == Side::White) ? Side::Black : Side::White;
 
-            return check_moves();
+            return {board, state};
         }
     }
-    return false;
+    return {board, state};
 }
 
 
@@ -736,12 +746,12 @@ std::vector<Move> Game::children(const Board& board, const PositionState& st) {
 bool Game::check_moves() {
     moves.clear();
 
-    moves = children(board, PositionState(ToMove, en_passant, CastlingRights(WhiteCastle, WhiteLongCastle, BlackCastle, BlackLongCastle)));
+    moves = children(board, PositionState(state.toMove, state.enPassant, CastlingRights(state.castle.whiteKingSide, state.castle.whiteQueenSide, state.castle.blackKingSide, state.castle.blackQueenSide)));
     return true;
 }
 
 std::string Game::print_moves() {
-    std::string ret = get_board_state() + "\nMoves: " + std::to_string(moves.size()) + "\t To Move: " + ((ToMove == Side::White) ? "White" : "Black") + "\n";
+    std::string ret = get_board_state() + "\nMoves: " + std::to_string(moves.size()) + "\t To Move: " + ((state.toMove == Side::White) ? "White" : "Black") + "\n";
 
     for (Move m : moves)
         ret += m.to_string() + "\n";
@@ -752,6 +762,6 @@ std::string Game::print_moves() {
 Side Game::checkmate() {
     check_moves();
     if (moves.empty())
-        return (ToMove == Side::White) ? Side::Black : Side::White;
+        return (state.toMove == Side::White) ? Side::Black : Side::White;
     return Side::Empty;
 }

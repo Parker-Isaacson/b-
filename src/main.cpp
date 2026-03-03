@@ -19,6 +19,7 @@ void test_game() {
     move(myGame, D7, D5);
     move(myGame, E5, D6);
 
+
     // Castling
     myGame.give_board_state(DEFAULT_BOARD);
     move(myGame, E2, E4);
@@ -55,5 +56,6 @@ void test_game() {
 
 int main(int argc, char** argv) {
     test_game();
+
     return 0;
 }
