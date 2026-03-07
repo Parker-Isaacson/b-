@@ -62,14 +62,13 @@ int main(/*int argc, char** argv*/) {
 
     while(g.checkmate() == Side::Empty) {
         Move m = g.get_move();
-        for (Move mx : g.bestMoves)
-            std::cout << mx.to_string() << std::endl;
         if (!g.give_move(m)) {
             std::cout << "Invalid Move: " << m.to_string() << "!\n" << g.print_moves() << std::endl;
             return 1;
         }
-        std::cout << g.get_board_state() << std::endl;
+        std::cout << m.to_string() << std::endl;
     }
+    std::cout << g.get_board_state() << std::endl;
 
     return 0;
 }
