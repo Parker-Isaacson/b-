@@ -77,7 +77,10 @@ Game::Game() {
     check_moves();
 }
 
-Game::Game(std::string notation) { give_board_state(notation); }
+Game::Game(std::string notation) {
+    give_board_state(notation);
+    checkmate();
+}
 
 std::string Game::get_board_state() {
     std::string notation = "";
@@ -215,61 +218,65 @@ Move Game::get_move() {
 
     // Takes the current board, state of board, move that got here, depth to search, alpha and beta for weights, and if the current player is the maximizing player
     // Returns the next best move, and the weight of the ending position
-    auto alphabeta_runner = [&](auto&& self, Board node, PositionState state, Move m, int depth, double alpha, double beta, bool maxPlayer) -> std::pair<Move, double> {
+    auto alphabeta_runner = [&](auto&& self, Board node, PositionState state, int depth, double alpha, double beta, bool maxPlayer, std::vector<Move>& pv) -> double {
         std::vector<Move> child = children(node, state);
+
         if (depth == 0 || child.empty()) {
-            return {m, evaluate(node, state)};
+            pv.clear();
+            return evaluate(node, state);
         }
-        if (maxPlayer) {
-            std::pair<Move, double> ret = {m, MIN_SCORE};
-            for (Move mx : child) {
-                auto next = update_board(node, state, mx, child);
-                if (!next) {
-                    continue;
-                }
 
-                auto [b, s] = *next;
-                std::pair<Move, double> mCall = self(self, b, s, mx, depth - 1, alpha, beta, false);
+        double bestScore = maxPlayer ? MIN_SCORE : MAX_SCORE;
+        std::vector<Move> bestLine;
 
-                if (mCall.second > ret.second) {
-                    ret = mCall;
-                }
-                if (ret.second >= beta) {
+        for (Move mx : child) {
+            auto next = update_board(node, state, mx, child);
+            if (!next) {
+                continue;
+            }
+
+            auto [b, s] = *next;
+
+            std::vector<Move> childLine;
+            double score = self(self, b, s, depth - 1, alpha, beta, !maxPlayer, childLine);
+
+            bool better = maxPlayer ? (score > bestScore) : (score < bestScore);
+
+            if (better) {
+                bestScore = score;
+
+                bestLine.clear();
+                bestLine.push_back(mx);
+                bestLine.insert(bestLine.end(), childLine.begin(), childLine.end());
+            }
+
+            if (maxPlayer) {
+                alpha = std::max(alpha, bestScore);
+                if (alpha >= beta) {
                     break;
                 }
-                alpha = (alpha > ret.second) ? alpha : ret.second;
-            }
-            return ret;
-        } else {
-            std::pair<Move, double> ret = {m, MAX_SCORE}; // could use std::numeric_limits<double>::infinity();, but there is no way this ret is reached
-            for (Move mx : child) {
-                auto next = update_board(node, state, mx, child);
-                if (!next) {
-                    continue;
-                }
-
-                auto [b, s] = *next;
-                std::pair<Move, double> mCall = self(self, b, s, mx, depth - 1, alpha, beta, true);
-
-                if (mCall.second < ret.second) {
-                    ret = mCall;
-                }
-                if (ret.second <= alpha) {
+            } else {
+                beta = std::min(beta, bestScore);
+                if (beta <= alpha) {
                     break;
                 }
-                beta = (beta < ret.second) ? beta : ret.second;
             }
-            return ret;
         }
+
+        pv = std::move(bestLine);
+        return bestScore;
     };
-    auto alphabeta = [&](Board node, PositionState state, Move m, int depth, double alpha, double beta, bool maxPlayer) -> Move {
-        return alphabeta_runner(alphabeta_runner, node, state, m, depth, alpha, beta, maxPlayer).first;
+    auto alphabeta = [&](Board node, PositionState state, int depth, double alpha, double beta, bool maxPlayer, std::vector<Move>& pv) {
+        alphabeta_runner(alphabeta_runner, node, state, depth, alpha, beta, maxPlayer, pv);
     };
 
     if (checkmate() != Side::Empty)
         return Move();
 
-    return alphabeta(board, state, Move(), SEARCH_DEPTH, MIN_SCORE, MAX_SCORE, true);
+    bestMoves.clear();
+    alphabeta(board, state, SEARCH_DEPTH, MIN_SCORE, MAX_SCORE, true, bestMoves);
+
+    return bestMoves.empty() ? Move{} : bestMoves.front();
 }
 
 bool Game::give_move(Move move) {

@@ -11,7 +11,7 @@
 
 #define MIN_SCORE -1000000
 #define MAX_SCORE  1000000
-#define SEARCH_DEPTH 1
+#define SEARCH_DEPTH 4
 
 struct Square {
     int file = -1; // 0-7 for a-h
@@ -214,18 +214,19 @@ class Game {
     private:
         // Board and related state
         Board board{};
-
         PositionState state;
+
+        // Listing of best moves for optimal position
 
         // Inner functions
         std::vector<Move> moves; // Legal move list
-                                 // p
         static std::optional<std::pair<Board, PositionState>> update_board(const Board& board, const PositionState& state, const Move& move, const std::vector<Move>& moves);
         bool check_moves(); // Clear and recalculate valid moves
         static std::vector<Move> children(const Board& board, const PositionState& st); // Find all children moves of current position
         static Side side_of_piece(Piece p); // Checks if the current peice is part of the current player.
 
     public:
+        std::vector<Move> bestMoves;
         // Required notation
         Game();
         Game(std::string notation);
