@@ -209,137 +209,207 @@ void Game::give_board_state(std::string notation) {
 
 // https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning#Pseudocode
 Move Game::get_move() {
-    auto evaluate = [&](const Board& b, const PositionState& state) { // Assume this works for know
+    auto evaluate = [](const Board& b, const PositionState& state) { // Assume this works for know
         return (state.toMove == Side::White) ? 1 : -1;
     };
 
-    // std::pair<double, Move>
-    auto alphabeta = [&](Board node, PositionState state, int depth, double alpha, double beta, bool maxPlayer) {
+    // Takes the current board, state of board, move that got here, depth to search, alpha and beta for weights, and if the current player is the maximizing player
+    // Returns the next best move, and the weight of the ending position
+    auto alphabeta_runner = [&](auto&& self, Board node, PositionState state, Move m, int depth, double alpha, double beta, bool maxPlayer) -> std::pair<Move, double> {
+        std::vector<Move> child = children(node, state);
+        if (depth == 0 || child.empty()) {
+            return {m, evaluate(node, state)};
+        }
+        if (maxPlayer) {
+            std::pair<Move, double> ret = {m, MIN_SCORE};
+            for (Move mx : child) {
+                auto next = update_board(node, state, mx, child);
+                if (!next) {
+                    continue;
+                }
 
+                auto [b, s] = *next;
+                std::pair<Move, double> mCall = self(self, b, s, mx, depth - 1, alpha, beta, false);
+
+                if (mCall.second > ret.second) {
+                    ret = mCall;
+                }
+                if (ret.second >= beta) {
+                    break;
+                }
+                alpha = (alpha > ret.second) ? alpha : ret.second;
+            }
+            return ret;
+        } else {
+            std::pair<Move, double> ret = {m, MAX_SCORE}; // could use std::numeric_limits<double>::infinity();, but there is no way this ret is reached
+            for (Move mx : child) {
+                auto next = update_board(node, state, mx, child);
+                if (!next) {
+                    continue;
+                }
+
+                auto [b, s] = *next;
+                std::pair<Move, double> mCall = self(self, b, s, mx, depth - 1, alpha, beta, true);
+
+                if (mCall.second < ret.second) {
+                    ret = mCall;
+                }
+                if (ret.second <= alpha) {
+                    break;
+                }
+                beta = (beta < ret.second) ? beta : ret.second;
+            }
+            return ret;
+        }
     };
-    
-    return Move(Square(0, 0), Square(0, 0)); // TODO: actually implemnet
+    auto alphabeta = [&](Board node, PositionState state, Move m, int depth, double alpha, double beta, bool maxPlayer) -> Move {
+        return alphabeta_runner(alphabeta_runner, node, state, m, depth, alpha, beta, maxPlayer).first;
+    };
+
+    if (checkmate() != Side::Empty)
+        return Move();
+
+    return alphabeta(board, state, Move(), SEARCH_DEPTH, MIN_SCORE, MAX_SCORE, true);
 }
 
-
 bool Game::give_move(Move move) {
-    std::pair<Board, PositionState> bps = update_board(board, state, move, moves);
-    board = bps.first;
-    state = bps.second;
+    if (checkmate() != Side::Empty)
+        return false;
+
+    auto next = update_board(board, state, move, moves);
+    if (!next) {
+        return false;
+    }
+
+    board = next->first;
+    state = next->second;
+    check_moves();
     return true;
 }
 
 bool Game::give_move(Square from, Square to, Piece promo) {
-    std::pair<Board, PositionState> bps = update_board(board, state, Move(from, to, promo), moves);
-    board = bps.first;
-    state = bps.second;
-    return true;
+    return give_move(Move(from, to, promo));
 }
 
-std::pair<Board, PositionState> Game::update_board(const Board& oldBoard, const PositionState& oldState, const Move& move, const std::vector<Move> moves) {
-    Board board = oldBoard;
-    PositionState state = oldState;
+std::optional<std::pair<Board, PositionState>>
+Game::update_board(const Board& oldBoard, const PositionState& oldState, const Move& move, const std::vector<Move>& moves) {
     for (const Move& m : moves) {
         bool same_squares = (move.from == m.from && move.to == m.to);
-        bool promo_ok = (move.promotion == m.promotion) ||
-                        (move.promotion == Piece::Empty && m.promotion != Piece::Empty);
+        bool promo_ok =
+            (move.promotion == m.promotion) ||
+            (move.promotion == Piece::Empty && m.promotion != Piece::Empty);
 
-        if (same_squares && promo_ok) {
-            Move chosen = m;
-            if (move.promotion != Piece::Empty)
-                chosen.promotion = move.promotion;
-
-            Piece moving = board[chosen.from.rank][chosen.from.file];
-            Piece captured = board[chosen.to.rank][chosen.to.file];
-
-            Square old_ep = state.enPassant;
-
-            if (moving == Piece::White_Pawn || moving == Piece::Black_Pawn || captured != Piece::Empty)
-                state.halfMove = 0;
-            else
-                ++state.halfMove;
-
-            board[chosen.to.rank][chosen.to.file] = moving;
-            board[chosen.from.rank][chosen.from.file] = Piece::Empty;
-
-            if ((moving == Piece::White_Pawn || moving == Piece::Black_Pawn) &&
-                captured == Piece::Empty &&
-                old_ep.rank != -1 && old_ep.file != -1 &&
-                chosen.to == old_ep &&
-                std::abs(chosen.to.file - chosen.from.file) == 1) {
-                int cap_rank = (moving == Piece::White_Pawn) ? (chosen.to.rank + 1) : (chosen.to.rank - 1);
-                if (cap_rank >= 0 && cap_rank < 8)
-                    board[cap_rank][chosen.to.file] = Piece::Empty;
-            }
-
-            state.enPassant = Square();
-
-            if (moving == Piece::White_Pawn && chosen.from.rank == 6 && chosen.to.rank == 4) {
-                state.enPassant = Square(5, chosen.from.file);
-            } else if (moving == Piece::Black_Pawn && chosen.from.rank == 1 && chosen.to.rank == 3) {
-                state.enPassant = Square(2, chosen.from.file);
-            }
-
-            if ((moving == Piece::White_King || moving == Piece::Black_King) &&
-                chosen.from.rank == chosen.to.rank &&
-                std::abs(chosen.to.file - chosen.from.file) == 2) {
-                int rank = chosen.from.rank;
-                if (chosen.to.file == 6) {
-                    Piece rook = board[rank][7];
-                    board[rank][5] = rook;
-                    board[rank][7] = Piece::Empty;
-                }
-                if (chosen.to.file == 2) {
-                    Piece rook = board[rank][0];
-                    board[rank][3] = rook;
-                    board[rank][0] = Piece::Empty;
-                }
-            }
-
-            if (moving == Piece::White_Pawn && chosen.to.rank == 0) {
-                Piece promo = chosen.promotion;
-                if (promo == Piece::Empty) promo = Piece::White_Queen;
-                if (side_of_piece(promo) != Side::White) promo = Piece::White_Queen;
-                board[chosen.to.rank][chosen.to.file] = promo;
-            } else if (moving == Piece::Black_Pawn && chosen.to.rank == 7) {
-                Piece promo = chosen.promotion;
-                if (promo == Piece::Empty) promo = Piece::Black_Queen;
-                if (side_of_piece(promo) != Side::Black) promo = Piece::Black_Queen;
-                board[chosen.to.rank][chosen.to.file] = promo;
-            }
-
-            if (moving == Piece::White_King) {
-                state.castle.whiteKingSide = false;
-                state.castle.whiteQueenSide = false;
-            } else if (moving == Piece::Black_King) {
-                state.castle.blackKingSide = false;
-                state.castle.blackQueenSide = false;
-            } else if (moving == Piece::White_Rook) {
-                if (chosen.from.rank == 7 && chosen.from.file == 0) state.castle.whiteQueenSide = false;
-                if (chosen.from.rank == 7 && chosen.from.file == 7) state.castle.whiteKingSide = false;
-            } else if (moving == Piece::Black_Rook) {
-                if (chosen.from.rank == 0 && chosen.from.file == 0) state.castle.blackQueenSide = false;
-                if (chosen.from.rank == 0 && chosen.from.file == 7) state.castle.blackKingSide = false;
-            }
-
-            if (captured == Piece::White_Rook) {
-                if (chosen.to.rank == 7 && chosen.to.file == 0) state.castle.whiteQueenSide = false;
-                if (chosen.to.rank == 7 && chosen.to.file == 7) state.castle.whiteKingSide = false;
-            } else if (captured == Piece::Black_Rook) {
-                if (chosen.to.rank == 0 && chosen.to.file == 0) state.castle.blackQueenSide = false;
-                if (chosen.to.rank == 0 && chosen.to.file == 7) state.castle.blackKingSide = false;
-            }
-
-            if (state.toMove == Side::Black)
-                ++state.fullMove;
-            state.toMove = (state.toMove == Side::White) ? Side::Black : Side::White;
-
-            return {board, state};
+        if (!same_squares || !promo_ok) {
+            continue;
         }
-    }
-    return {board, state};
-}
 
+        Board board = oldBoard;
+        PositionState state = oldState;
+
+        Move chosen = m;
+        if (move.promotion != Piece::Empty) {
+            chosen.promotion = move.promotion;
+        }
+
+        Piece moving = board[chosen.from.rank][chosen.from.file];
+        Piece captured = board[chosen.to.rank][chosen.to.file];
+
+        Square old_ep = state.enPassant;
+
+        if (moving == Piece::White_Pawn || moving == Piece::Black_Pawn || captured != Piece::Empty) {
+            state.halfMove = 0;
+        } else {
+            ++state.halfMove;
+        }
+
+        board[chosen.to.rank][chosen.to.file] = moving;
+        board[chosen.from.rank][chosen.from.file] = Piece::Empty;
+
+        // en passant capture
+        if ((moving == Piece::White_Pawn || moving == Piece::Black_Pawn) &&
+            captured == Piece::Empty &&
+            old_ep.rank != -1 && old_ep.file != -1 &&
+            chosen.to == old_ep &&
+            std::abs(chosen.to.file - chosen.from.file) == 1) {
+            int cap_rank = (moving == Piece::White_Pawn)
+                ? (chosen.to.rank + 1)
+                : (chosen.to.rank - 1);
+
+            if (cap_rank >= 0 && cap_rank < 8) {
+                board[cap_rank][chosen.to.file] = Piece::Empty;
+            }
+        }
+
+        state.enPassant = Square();
+
+        if (moving == Piece::White_Pawn && chosen.from.rank == 6 && chosen.to.rank == 4) {
+            state.enPassant = Square(5, chosen.from.file);
+        } else if (moving == Piece::Black_Pawn && chosen.from.rank == 1 && chosen.to.rank == 3) {
+            state.enPassant = Square(2, chosen.from.file);
+        }
+
+        // castling rook move
+        if ((moving == Piece::White_King || moving == Piece::Black_King) &&
+            chosen.from.rank == chosen.to.rank &&
+            std::abs(chosen.to.file - chosen.from.file) == 2) {
+            int rank = chosen.from.rank;
+            if (chosen.to.file == 6) {
+                Piece rook = board[rank][7];
+                board[rank][5] = rook;
+                board[rank][7] = Piece::Empty;
+            } else if (chosen.to.file == 2) {
+                Piece rook = board[rank][0];
+                board[rank][3] = rook;
+                board[rank][0] = Piece::Empty;
+            }
+        }
+
+        // promotion
+        if (moving == Piece::White_Pawn && chosen.to.rank == 0) {
+            Piece promo = chosen.promotion;
+            if (promo == Piece::Empty) promo = Piece::White_Queen;
+            if (side_of_piece(promo) != Side::White) promo = Piece::White_Queen;
+            board[chosen.to.rank][chosen.to.file] = promo;
+        } else if (moving == Piece::Black_Pawn && chosen.to.rank == 7) {
+            Piece promo = chosen.promotion;
+            if (promo == Piece::Empty) promo = Piece::Black_Queen;
+            if (side_of_piece(promo) != Side::Black) promo = Piece::Black_Queen;
+            board[chosen.to.rank][chosen.to.file] = promo;
+        }
+
+        // castling rights
+        if (moving == Piece::White_King) {
+            state.castle.whiteKingSide = false;
+            state.castle.whiteQueenSide = false;
+        } else if (moving == Piece::Black_King) {
+            state.castle.blackKingSide = false;
+            state.castle.blackQueenSide = false;
+        } else if (moving == Piece::White_Rook) {
+            if (chosen.from.rank == 7 && chosen.from.file == 0) state.castle.whiteQueenSide = false;
+            if (chosen.from.rank == 7 && chosen.from.file == 7) state.castle.whiteKingSide = false;
+        } else if (moving == Piece::Black_Rook) {
+            if (chosen.from.rank == 0 && chosen.from.file == 0) state.castle.blackQueenSide = false;
+            if (chosen.from.rank == 0 && chosen.from.file == 7) state.castle.blackKingSide = false;
+        }
+
+        if (captured == Piece::White_Rook) {
+            if (chosen.to.rank == 7 && chosen.to.file == 0) state.castle.whiteQueenSide = false;
+            if (chosen.to.rank == 7 && chosen.to.file == 7) state.castle.whiteKingSide = false;
+        } else if (captured == Piece::Black_Rook) {
+            if (chosen.to.rank == 0 && chosen.to.file == 0) state.castle.blackQueenSide = false;
+            if (chosen.to.rank == 0 && chosen.to.file == 7) state.castle.blackKingSide = false;
+        }
+
+        if (state.toMove == Side::Black) {
+            ++state.fullMove;
+        }
+        state.toMove = (state.toMove == Side::White) ? Side::Black : Side::White;
+
+        return std::make_optional(std::make_pair(board, state));
+    }
+
+    return std::nullopt;
+}
 
 std::vector<Move> Game::children(const Board& board, const PositionState& st) {
     std::vector<Move> legal;
@@ -678,5 +748,7 @@ Side Game::checkmate() {
     check_moves();
     if (moves.empty())
         return (state.toMove == Side::White) ? Side::Black : Side::White;
+    if (state.halfMove > 100)
+        return Side::Draw;
     return Side::Empty;
 }

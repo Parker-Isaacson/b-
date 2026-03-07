@@ -2,8 +2,16 @@
 #include <string>
 #include <vector>
 #include <stdlib.h>
+#include <functional>
+#include <optional>
+
+#include <iostream> //TODO: Remove
 
 #define DEFAULT_BOARD "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+
+#define MIN_SCORE -1000000
+#define MAX_SCORE  1000000
+#define SEARCH_DEPTH 1
 
 struct Square {
     int file = -1; // 0-7 for a-h
@@ -121,7 +129,7 @@ inline constexpr Square F8{0, 5};
 inline constexpr Square G8{0, 6};
 inline constexpr Square H8{0, 7};
 
-enum class Side { Empty, White, Black, };
+enum class Side { Empty, White, Black, Draw };
 
 enum class Piece : int8_t {
     Empty,
@@ -211,8 +219,8 @@ class Game {
 
         // Inner functions
         std::vector<Move> moves; // Legal move list
-
-        static std::pair<Board, PositionState> update_board(const Board& board, const PositionState& state, const Move& move, const std::vector<Move> moves); // Checks validity of move provided, and updates board as provided
+                                 // p
+        static std::optional<std::pair<Board, PositionState>> update_board(const Board& board, const PositionState& state, const Move& move, const std::vector<Move>& moves);
         bool check_moves(); // Clear and recalculate valid moves
         static std::vector<Move> children(const Board& board, const PositionState& st); // Find all children moves of current position
         static Side side_of_piece(Piece p); // Checks if the current peice is part of the current player.

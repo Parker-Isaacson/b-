@@ -19,7 +19,6 @@ void test_game() {
     move(myGame, D7, D5);
     move(myGame, E5, D6);
 
-
     // Castling
     myGame.give_board_state(DEFAULT_BOARD);
     move(myGame, E2, E4);
@@ -54,8 +53,21 @@ void test_game() {
     // std::cout << myGame.print_moves() << std::endl; // Note there is just one move
 }
 
-int main(int argc, char** argv) {
+int main(/*int argc, char** argv*/) {
     test_game();
+
+    Game g;
+
+    // std::cout << g.print_moves() << std::endl;
+
+    while(g.checkmate() == Side::Empty) {
+        Move m = g.get_move();
+        if (!g.give_move(m)) {
+            std::cout << "Invalid Move: " << m.to_string() << "!\n" << g.print_moves() << std::endl;
+            return 1;
+        }
+        std::cout << g.get_board_state() << std::endl;
+    }
 
     return 0;
 }

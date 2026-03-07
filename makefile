@@ -28,4 +28,4 @@ run:
 
 rebuild: clean all
 
-.PHONY: all clean rebuild
+.PHONY: all clean rebuild run
