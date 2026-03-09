@@ -26,5 +26,6 @@ There is no reall checking on user input. Bad inputs will lead to unintended beh
 |Give Move|g|Allows user to give a move to be completed.|
 |Get Move|t|Gets a move that will be completed.|
 |Give Get|m|Runs Give Move then Get Move.|
+|Valid Moves|v|Gets the list of valid moves.|
 |Give Board|p|Allows user to give a new board, this will reset the game.|
 |Get Board|b|Gets the current board state.|

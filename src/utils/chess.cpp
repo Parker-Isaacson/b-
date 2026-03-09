@@ -341,7 +341,7 @@ bool Game::give_move(Move move) {
 
     board = next->first;
     state = next->second;
-    moves.push_back(move);
+    completed.push_back(move);
     check_moves();
     return true;
 }
@@ -826,7 +826,7 @@ std::string Game::end_game() {
     else
         ret += "No Winner.\n";
 
-    for (Move m : moves)
+    for (Move m : completed)
         ret += m.to_string() + ", ";
 
     ret += "\n" + get_board_state() + "\n";

@@ -14,6 +14,7 @@ enum class Action {
     GIVE_MOVE, // g
     GET_MOVE, // t
     GIVE_GET_MOVE, // m
+    VALID_MOVES, // v
 
     // Board
     GIVE_BOARD, // p
@@ -52,8 +53,10 @@ void perform_action(const Action& action, Game& game) {
         do {
             std::cout << "Give a move in long algebraic notation: ";
             std::cin >> m;
-        } while (m.length() != 5 || m.length() != 4);
-        if (game.give_move(Move(m)))
+        } while (m.length() != 5 && m.length() != 4);
+        Move mx(m);
+        std::cout << mx.to_string() << std::endl;
+        if (game.give_move(mx))
             std::cout << "Move " << m << " has been made.\n";
         else {
             std::cout << "Move " << m << " has not been made. Valid moves below:\n";
@@ -67,7 +70,7 @@ void perform_action(const Action& action, Game& game) {
         game.give_move(m);
         std::cout << "Move " << m.to_string() << " has been made by the computer.\n";
     };
-    switch (action) {
+    switch (action) { // Vim auto indent wierd here?
         case Action::NONE:
         case Action::EXIT: {
                                std::cout << "No Action performed\n";
@@ -100,7 +103,7 @@ void perform_action(const Action& action, Game& game) {
         case Action::GIVE_BOARD: {
                                      std::string s;
                                      std::cout << "What is the board state: ";
-                                     std::cin >> s;
+                                     std::getline(std::cin >> std::ws, s); // Google blessed me
                                      game = Game(s);
                                      std::cout << "Game has been updated to the provided board state.\n";
                                      break;
@@ -109,6 +112,10 @@ void perform_action(const Action& action, Game& game) {
                                     std::cout << "The current board state is: " << game.get_board_state() << "\n";
                                     break;
                                 }
+        case Action::VALID_MOVES: {
+                                      std::cout << "Valid moves are: " << game.print_moves() << "\n";
+                                      break;
+                                  }
     }
 }
 
@@ -118,7 +125,7 @@ Action get_action() {
         std::cout << "What action to do? (h: help): ";
         std::cin >> s;
         if (s.length() != 1) {
-            std::cout << "Bad action.";
+            std::cout << "Bad action.\n";
             continue;
         }
         if (s == "h") {
@@ -141,6 +148,8 @@ Action get_action() {
                 return Action::GIVE_BOARD;
             case 'b':
                 return Action::GET_BOARD;
+            case 'v':
+                return Action::VALID_MOVES;
             default:
                 return Action::NONE;
         }

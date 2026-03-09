@@ -232,7 +232,7 @@ struct Move {
         : Move(Square(from_rank, from_file), Square(to_rank, to_file), promotion_) {}
 
     Move(std::string m) {
-        if (m.length() != 4 || m.length() != 5)
+        if (m.length() != 4 && m.length() != 5)
             return;
         from = Square(m.substr(0, 2));
         to = Square(m.substr(2, 2));
