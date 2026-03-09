@@ -212,27 +212,52 @@ void Game::give_board_state(std::string notation) {
 
 // https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning#Pseudocode
 Move Game::get_move() {
-    auto evaluate = [](const Board& b, const PositionState& state) -> double { // Assume this works for know
+    auto evaluate = [](const Board& b, const PositionState& state) -> double {
         double whiteScore = 0;
         double blackScore = 0;
 
         // White accesses like [r][f]
         // Black accesses like [r][7 - f]
+        // To encourage capturing, add each pieces value to the respective teams score, these are better than positional scores, besides pawns
         for (int r = 0; r < 8; r++) {
             for (int f = 0; f < 8; f++) {
                 switch (b[r][f]) {
-                    case Piece::White_King: whiteScore += evalKing[r][f]; break;
-                    case Piece::White_Queen: whiteScore += evalQueen[r][f]; break;
-                    case Piece::White_Bishop: whiteScore += evalBishop[r][f]; break;
-                    case Piece::White_Knight: whiteScore += evalKnight[r][f]; break;
-                    case Piece::White_Rook: whiteScore += evalRook[r][f]; break;
-                    case Piece::White_Pawn: whiteScore += evalPawn[r][f]; break;
-                    case Piece::Black_King: blackScore += evalKing[r][7 - f]; break;
-                    case Piece::Black_Queen: blackScore += evalQueen[r][7 - f]; break;
-                    case Piece::Black_Bishop: blackScore += evalBishop[r][7 - f]; break;
-                    case Piece::Black_Knight: blackScore += evalKnight[r][7 - f]; break;
-                    case Piece::Black_Rook: blackScore += evalRook[r][7 - f]; break;
-                    case Piece::Black_Pawn: blackScore += evalPawn[r][7 - f]; break;
+                    case Piece::White_King: 
+                        whiteScore += evalKing[r][f];
+                        break;
+                    case Piece::White_Queen:
+                        whiteScore += evalQueen[r][f] + 8;
+                        break;
+                    case Piece::White_Bishop:
+                        whiteScore += evalBishop[r][f] + 3;
+                        break;
+                    case Piece::White_Knight:
+                        whiteScore += evalKnight[r][f] + 3;
+                        break;
+                    case Piece::White_Rook:
+                        whiteScore += evalRook[r][f] + 5;
+                            break;
+                    case Piece::White_Pawn: 
+                        whiteScore += evalPawn[r][f] + 1;
+                        break;
+                    case Piece::Black_King:
+                        blackScore += evalKing[r][7 - f];
+                        break;
+                    case Piece::Black_Queen:
+                        blackScore += evalQueen[r][7 - f] + 8;
+                        break;
+                    case Piece::Black_Bishop:
+                        blackScore += evalBishop[r][7 - f] + 3;
+                        break;
+                    case Piece::Black_Knight:
+                        blackScore += evalKnight[r][7 - f] + 3;
+                        break;
+                    case Piece::Black_Rook:
+                        blackScore += evalRook[r][7 - f] + 5;
+                        break;
+                    case Piece::Black_Pawn:
+                        blackScore += evalPawn[r][7 - f] + 1;
+                        break;
                     default: break;
                 }
             }

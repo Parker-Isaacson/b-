@@ -14,12 +14,66 @@
 #define SEARCH_DEPTH 4
 
 // Board Evaluators, a8-h1
-inline constexpr std::array<std::array<double, 8>, 8> evalKing = {1};
-inline constexpr std::array<std::array<double, 8>, 8> evalQueen = {1};
-inline constexpr std::array<std::array<double, 8>, 8> evalBishop = {1};
-inline constexpr std::array<std::array<double, 8>, 8> evalKnight = {1};
-inline constexpr std::array<std::array<double, 8>, 8> evalRook = {1};
-inline constexpr std::array<std::array<double, 8>, 8> evalPawn = {1};
+inline constexpr std::array<std::array<double, 8>, 8> evalKing = {{
+    {{-1, -1, -1, -1, -1, -1, -1, -1}}, // Dont be outside the back rank
+    {{-1, -1, -1, -1, -1, -1, -1, -1}},
+    {{-1, -1, -1, -1, -1, -1, -1, -1}},
+    {{-1, -1, -1, -2, -2, -1, -1, -1}}, // I dont like the cetner
+    {{-1, -1, -1, -2, -2, -1, -1, -1}},
+    {{-1, -1, -1, -1, -1, -1, -1, -1}},
+    {{-1, -1, -1, -1, -1, -1, -1, -1}},
+    {{0, 0, 2, -1, 1, -1, 2, 0}}, // My goal is to make it so the king will only want to be where it is or castle
+}};
+inline constexpr std::array<std::array<double, 8>, 8> evalQueen = {{
+    {{2, 2, 2, 2, 2, 2, 2, 2}},
+    {{2, 2, 2, 2, 2, 2, 2, 2}},
+    {{2, 2, 2, 2, 2, 2, 2, 2}},
+    {{2, 2, 2, 2, 2, 2, 2, 2}},
+    {{2, 2, 2, 2, 2, 2, 2, 2}},
+    {{2, 2, 2, 2, 2, 2, 2, 2}},
+    {{2, 2, 2, 2, 2, 2, 2, 2}},
+    {{2, 2, 2, 2, 2, 2, 2, 2}}, // Queen is good anywhere
+}};
+inline constexpr std::array<std::array<double, 8>, 8> evalBishop = {{
+    {{2, 2, 2, 2, 2, 2, 2, 2}},
+    {{2, 1, 1, 1, 1, 1, 1, 2}},
+    {{2, 1, 0, 0, 0, 0, 1, 2}},
+    {{2, 1, 0, .5, .5, 0, 1, 2}},
+    {{2, 1, 0, .5, .5, 0, 1, 2}}, // Be towrads the edge of the board
+    {{2, 1, 0, 0, 0, 0, 1, 2}},
+    {{2, 1, 1, 1, 1, 1, 1, 2}},
+    {{2, 2, 2, 2, 2, 2, 2, 2}},
+}};
+inline constexpr std::array<std::array<double, 8>, 8> evalKnight = {{
+    {{0, 0, 0, 0, 0, 0, 0, 0}},
+    {{0, .5, .5, .5, .5, .5, .5, 0}},
+    {{0, .5, 1, 1, 1, 1, .5, 0}},
+    {{0, .5, 1, 1, 1, 1, .5, 0}},
+    {{0, .5, 1, 1, 1, 1, .5, 0}},
+    {{0, .5, 1, 1, 1, 1, .5, 0}}, // Knights can do more in the center
+    {{0, .5, .5, .5, .5, .5, .5, 0}},
+    {{0, .5, 0, 0, 0, 0, .5, 0}}, // Dont want knights to be on the edges
+}};
+inline constexpr std::array<std::array<double, 8>, 8> evalRook = {{
+    {{0, 0, 0, 0, 0, 0, 0, 0}},
+    {{0, 0, 0, 0, 0, 0, 0, 0}},
+    {{0, 0, 0, 0, 0, 0, 0, 0}},
+    {{-1, -1, -1, -1, -1, -1, -1, -1}}, // I don't like the rook in the middle
+    {{-1, -1, -1, -1, -1, -1, -1, -1}},
+    {{0, 0, 0, 0, 0, 0, 0, 0}},
+    {{0, 0, 0, 0, 0, 0, 0, 0}},
+    {{0, 0, 2, 0, 1, 0, 2, 0}}, // Put rook on the row where the king might be, based on score
+}};
+inline constexpr std::array<std::array<double, 8>, 8> evalPawn = {{
+    {{5, 5, 5, 5, 5, 5, 5, 5}}, // Prioritize getting to the end to promote
+    {{2.5, 2.75, 2.75, 2.75, 2.75, 2.75, 2.75, 2.5}},
+    {{2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5}},
+    {{2, 2.25, 2.25, 2.25, 2.25, 2.25, 2.25, 2}},
+    {{1, 1, 2, 4, 4, 2, 1, 1}}, // Center control is good
+    {{1, 1.125, 1.25, 1.25, 1.25, 1.25, 1.125, 1}}, // Disencourage being on the side of the board
+    {{1, 1, 1, 1, 1, 1, 1, 1}}, // Its ok if they stay still
+    {{0, 0, 0, 0, 0, 0, 0, 0}}, // Pawns cannot be on the last rannk
+}};
 
 struct Square {
     int file = -1; // 0-7 for a-h
@@ -232,7 +286,7 @@ class Game {
         static std::optional<std::pair<Board, PositionState>> update_board(const Board& board, const PositionState& state, const Move& move, const std::vector<Move>& moves);
         bool check_moves(); // Clear and recalculate valid moves
         static std::vector<Move> children(const Board& board, const PositionState& st); // Find all children moves of current position
-        static Side side_of_piece(Piece p); // Checks if the current peice is part of the current player.
+        static Side side_of_piece(Piece p); // Checks if the current piece is part of the current player.
 
     public:
         // Required notation
