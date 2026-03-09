@@ -207,6 +207,7 @@ void Game::give_board_state(std::string notation) {
     for (; std::isdigit(notation[i + j]); j++) { } // Find the length of the full move clock
     state.fullMove = std::stoi(notation.substr(i, j));
 
+    completed.clear();
     check_moves();
 }
 
@@ -340,6 +341,7 @@ bool Game::give_move(Move move) {
 
     board = next->first;
     state = next->second;
+    moves.push_back(move);
     check_moves();
     return true;
 }
@@ -808,4 +810,26 @@ Side Game::checkmate() {
     if (state.halfMove > 100)
         return Side::Draw;
     return Side::Empty;
+}
+
+
+std::string Game::end_game() {
+    std::string ret;
+
+    Side winner = checkmate();
+    if (winner == Side::White)
+        ret += "White Wins!\n";
+    else if (winner == Side::Black)
+        ret += "Black Wins!\n";
+    else if (winner == Side::Draw)
+        ret += "Game Drawn!\n";
+    else
+        ret += "No Winner.\n";
+
+    for (Move m : moves)
+        ret += m.to_string() + ", ";
+
+    ret += "\n" + get_board_state() + "\n";
+
+    return ret;
 }

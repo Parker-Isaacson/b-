@@ -11,7 +11,7 @@
 
 #define MIN_SCORE -1000000
 #define MAX_SCORE  1000000
-#define SEARCH_DEPTH 4
+#define SEARCH_DEPTH 5
 
 // Board Evaluators, a8-h1
 inline constexpr std::array<std::array<double, 8>, 8> evalKing = {{
@@ -231,6 +231,16 @@ struct Move {
     constexpr Move(int from_rank, int from_file, int to_rank, int to_file, Piece promotion_)
         : Move(Square(from_rank, from_file), Square(to_rank, to_file), promotion_) {}
 
+    Move(std::string m) {
+        if (m.length() != 4 || m.length() != 5)
+            return;
+        from = Square(m.substr(0, 2));
+        to = Square(m.substr(2, 2));
+        if (m.length() < 5)
+            return;
+        promotion = string_to_piece(m[4]);
+    }
+
     std::string to_string() const {
         std::string ret = from.to_string() + " " + to.to_string(); 
 
@@ -281,6 +291,9 @@ class Game {
         // Listing of best moves for optimal position
         std::vector<Move> bestMoves;
 
+        // Moves made
+        std::vector<Move> completed;
+
         // Inner functions
         std::vector<Move> moves; // Legal move list
         static std::optional<std::pair<Board, PositionState>> update_board(const Board& board, const PositionState& state, const Move& move, const std::vector<Move>& moves);
@@ -303,4 +316,7 @@ class Game {
         // Debug functions
         std::string print_moves();
         Side checkmate(); // Returns the winning side if possible
+
+        // Print all moves made, and current board state
+        std::string end_game();
 };
