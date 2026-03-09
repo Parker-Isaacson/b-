@@ -55,7 +55,6 @@ void perform_action(const Action& action, Game& game) {
             std::cin >> m;
         } while (m.length() != 5 && m.length() != 4);
         Move mx(m);
-        std::cout << mx.to_string() << std::endl;
         if (game.give_move(mx))
             std::cout << "Move " << m << " has been made.\n";
         else {
@@ -109,7 +108,7 @@ void perform_action(const Action& action, Game& game) {
                                      break;
                                  }
         case Action::GET_BOARD: {
-                                    std::cout << "The current board state is: " << game.get_board_state() << "\n";
+                                    std::cout << "The current board state is: " << game.get_board_state() << "\n" << game.print_board() << "\n";
                                     break;
                                 }
         case Action::VALID_MOVES: {

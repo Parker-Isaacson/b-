@@ -5,13 +5,18 @@
 #include <functional>
 #include <optional>
 
-#include <iostream> //TODO: Remove
-
 #define DEFAULT_BOARD "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
 #define MIN_SCORE -1000000
 #define MAX_SCORE  1000000
 #define SEARCH_DEPTH 5
+
+#define RESET  "\033[0m"
+#define WHITE_BG "\033[107m"
+#define BLACK_BG "\033[40m"
+
+#define WHITE_TEXT "\033[97m"
+#define BLACK_TEXT "\033[30m"
 
 // Board Evaluators, a8-h1
 inline constexpr std::array<std::array<double, 8>, 8> evalKing = {{
@@ -313,10 +318,8 @@ class Game {
         bool give_move(Move move); // Updates the board with a provided 
         bool give_move(Square from, Square to, Piece promo = Piece::Empty);
         
-        // Debug functions
-        std::string print_moves();
+        std::string end_game(); // Print all moves made, and current board state
+        std::string print_moves(); // Print the listing of moves and current board state
+        std::string print_board(); // Print the board as nicely as possible!
         Side checkmate(); // Returns the winning side if possible
-
-        // Print all moves made, and current board state
-        std::string end_game();
 };

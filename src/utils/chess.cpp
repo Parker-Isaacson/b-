@@ -30,7 +30,7 @@ char piece_to_string(Piece p) {
         case Piece::Black_Knight: return 'n';
         case Piece::Black_Rook: return 'r';
         case Piece::Black_Pawn: return 'p';
-        default: return 'z';
+        default: return ' ';
     }
 }
 
@@ -90,7 +90,7 @@ std::string Game::get_board_state() {
         int count = 0;
         for (Piece p : rank) {
             char m = piece_to_string(p);
-            if ( m == 'z' ) {
+            if ( m == ' ' ) {
                 count++;
                 continue;
             }
@@ -830,6 +830,47 @@ std::string Game::end_game() {
         ret += m.to_string() + ", ";
 
     ret += "\n" + get_board_state() + "\n";
+
+    return ret;
+}
+
+std::string Game::print_board() {
+    std::string ret;
+
+    ret += "  a b c d e f g h\n\n";
+
+    for (int r = 0; r < 8; r++) {
+
+        std::string top;
+        std::string bottom;
+
+        top += std::to_string(8 - r);
+        top += ' ';
+        bottom += "  ";
+
+        for (int f = 0; f < 8; f++) {
+
+            bool whiteSquare = ((r + f) % 2 == 0);
+
+            const char* bg = whiteSquare ? WHITE_BG : BLACK_BG;
+            const char* fg = whiteSquare ? BLACK_TEXT : WHITE_TEXT;
+
+            char p = piece_to_string(board[r][f]);
+
+            top += bg;
+            top += fg;
+            top += p;
+            top += " ";
+            top += RESET;
+
+            bottom += bg;
+            bottom += "  ";
+            bottom += RESET;
+        }
+
+        ret += top + "\n";
+        ret += bottom + "\n";
+    }
 
     return ret;
 }

@@ -23,7 +23,7 @@ There is no real checking on user input. Bad inputs will lead to unintended beha
 |Exit|q|Exits the program.|
 |Start Game|s|Starts a new game with the default board state.|
 |End Game|e|Ends the current game, resetting the board. Printing all moves that were made, the ending board state, and the winner (if any).|
-|Give Move|g|Allows user to give a move to be completed.|
+|Give Move|g|Allows user to give a move to be completed. Moves should be input like "a1a2" or "a7a8q" if promotion is available.|
 |Get Move|t|Gets a move that will be completed.|
 |Give Get|m|Runs Give Move then Get Move.|
 |Valid Moves|v|Gets the list of valid moves.|
