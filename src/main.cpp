@@ -70,7 +70,7 @@ void perform_action(const Action& action, Game& game) {
         game.give_move(m);
         std::cout << "Move " << m.to_string() << " has been made by the computer.\n";
     };
-    switch (action) { // Vim auto indent wierd here?
+    switch (action) { // Vim auto indent weird here?
         case Action::NONE:
         case Action::EXIT: {
                                std::cout << "No Action performed\n";
@@ -129,7 +129,7 @@ Action get_action() {
             continue;
         }
         if (s == "h") {
-            std::cout << "See README.md for more information.\n";
+            std::cout << "See https://github.com/Parker-Isaacson/b- for more information.\n";
         }
         switch (s[0]) {
             case 'q':

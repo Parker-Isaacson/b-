@@ -4,25 +4,25 @@
 
 ### Rules
 
-This chess bot was written through CUSEC's ( Clarkson University Software Engineering Club ) Chess Competition. The rules are below, other standard competition rules and practices are followed
+This chess bot was written through CUSEC's (Clarkson University Software Engineering Club) Chess Competition. The rules are below, other standard competition rules and practices are followed
 
 1. It cannot be a already made chess bot (StockFish, Torch, etc.)
 2. It can be implemented in any language, though must be able to do the 4 below, named appropriately.
-  - Provide board state in Forysth-Edwards Notation https://en.wikipedia.org/wiki/Forsyth–Edwards_Notation
-  - Take board state in Forysth-Edwards Notation
-  - Provide a move
-  - Take a move
-3. It must use https://en.wikipedia.org/wiki/Universal_Chess_Interface for move notation
+  - Give Board State in [Forysth-Edwards Notation](https://en.wikipedia.org/wiki/Forsyth–Edwards_Notation).
+  - Get Board State in [Forysth-Edwards Notation](https://en.wikipedia.org/wiki/Forsyth–Edwards_Notation).
+  - Provide a move in [Long Algebraic Notation](https://en.wikipedia.org/wiki/Algebraic_notation_(chess)#Long_algebraic_notation).
+  - Take a move in [Long Algebraic Notation](https://en.wikipedia.org/wiki/Algebraic_notation_(chess)#Long_algebraic_notation).
+3. It must use [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interface).
 
 ### Actions
 
-There is no reall checking on user input. Bad inputs will lead to unintended behavior. The computer does not care whose side it is and will make a move regardless, it is up to the user to ensure the input is correct.
+There is no real checking on user input. Bad inputs will lead to unintended behavior. The computer does not care whose side it is and will make a move regardless, it is up to the user to ensure the input is correct.
 
 |Action|Letter|Description|
 |:--:|:--:|:---|
 |Exit|q|Exits the program.|
 |Start Game|s|Starts a new game with the default board state.|
-|End Game|e|Ends the current game, reseting the board. Printing all moves that were made, the ending board state, and the winner (if any).|
+|End Game|e|Ends the current game, resetting the board. Printing all moves that were made, the ending board state, and the winner (if any).|
 |Give Move|g|Allows user to give a move to be completed.|
 |Get Move|t|Gets a move that will be completed.|
 |Give Get|m|Runs Give Move then Get Move.|
