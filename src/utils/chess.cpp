@@ -272,9 +272,13 @@ Move Game::get_move() {
     auto alphabeta_runner = [&](auto&& self, Board node, PositionState state, int depth, double alpha, double beta, bool maxPlayer, std::vector<Move>& pv) -> double {
         std::vector<Move> child = children(node, state);
 
-        if (depth == 0 || child.empty()) {
+        if (depth == 0) {
             pv.clear();
             return evaluate(node, state);
+        }
+        else if (child.empty()) {
+            pv.clear();
+            return evaluate(node, state) + 12; // This position leads to checkmate
         }
 
         double bestScore = maxPlayer ? MIN_SCORE : MAX_SCORE;
