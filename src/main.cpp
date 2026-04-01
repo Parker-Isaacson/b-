@@ -1,4 +1,5 @@
 #include <iostream>
+#include <chrono>
 #include "utils/chess.h"
 
 enum class Action {
@@ -20,6 +21,9 @@ enum class Action {
     GIVE_BOARD, // p
     GET_BOARD, // b
     GET_SCORE, // i
+    
+    // Loop
+    LOOP, // l
 };
 
 // Tests, en passant, castling, pins, checkmate, check
@@ -66,9 +70,12 @@ void perform_action(const Action& action, Game& game) {
         return true;
     };
     auto get_move = [&]() {
+        auto start = std::chrono::steady_clock::now();
         Move m = game.get_move();
+        auto end = std::chrono::steady_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
         game.give_move(m);
-        std::cout << "Move " << m.to_string() << " has been made by the computer.\n";
+        std::cout << "Move " << m.to_string() << " has been in " << duration.count() << "ms made by the computer.\n";
     };
     switch (action) { // Vim auto indent weird here?
         case Action::NONE:
@@ -120,6 +127,16 @@ void perform_action(const Action& action, Game& game) {
                                     std::cout << "The current score is: " << game.print_score() << "\n";
                                     break;
                                 }
+        case Action::LOOP: {
+                               std::cout << "Game will run in a loop until a draw or winning position, ^C to end." << std::endl;
+                               while (game.checkmate() == Side::Empty) {
+                                   get_move();
+                                   std::cout << "The current score is: " << game.print_score() << "\n";
+                               }
+                               std::cout << "Game Ended!\n";
+                               std::cout << game.end_game() << std::endl;
+                               game = Game();
+                           }
     }
 }
 
@@ -156,6 +173,8 @@ Action get_action() {
                 return Action::VALID_MOVES;
             case 'i':
                 return Action::GET_SCORE;
+            case 'l':
+                return Action::LOOP;
             default:
                 return Action::NONE;
         }

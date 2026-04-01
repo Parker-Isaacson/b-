@@ -1,15 +1,22 @@
 #include <array>
-#include <string>
-#include <vector>
-#include <stdlib.h>
-#include <functional>
+#include <atomic>
+#include <condition_variable>
+#include <mutex>
 #include <optional>
+#include <string>
+#include <thread>
+#include <utility>
+#include <vector>
+
+#ifndef CHESS_SEARCH_THREADS
+#define CHESS_SEARCH_THREADS 24
+#endif
 
 #define DEFAULT_BOARD "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
 #define MIN_SCORE -1000000
 #define MAX_SCORE  1000000
-#define SEARCH_DEPTH 5
+#define SEARCH_DEPTH 7
 
 #define RESET  "\033[0m"
 #define WHITE_BG "\033[107m"
@@ -296,13 +303,14 @@ class Game {
         std::vector<Move> bestMoves;
         std::vector<Move> completed;
         std::vector<Move> moves; // Legal move list
-        
+
         static std::optional<std::pair<Board, PositionState>> update_board(const Board& board, const PositionState& state, const Move& move, const std::vector<Move>& moves);
         static double evaluate(const Board& board, const PositionState& state);
         bool check_moves(); // Clear and recalculate valid moves
         static std::vector<Move> children(const Board& board, const PositionState& st); // Find all children moves of current position
         static Side side_of_piece(Piece p); // Checks if the current piece is part of the current player.
 
+        static double alphabeta(const Board& node, const PositionState& state, int depth, double alpha, double beta, bool maxPlayer, std::vector<Move>& pv);
     public:
         // Required notation
         Game();
@@ -310,11 +318,11 @@ class Game {
 
         std::string get_board_state(); // Creates and returns the board state in Forsyth-Edwards Notation
         void give_board_state(std::string state); // Returns a new game board from the state provided
-        
+
         Move get_move(); // Gets the best move, this is the chess bot
         bool give_move(Move move); // Updates the board with a provided 
         bool give_move(Square from, Square to, Piece promo = Piece::Empty);
-        
+
         std::string end_game(); // Print all moves made, and current board state
         std::string print_moves(); // Print the listing of moves and current board state
         std::string print_board(); // Print the board as nicely as possible!

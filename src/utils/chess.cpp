@@ -99,13 +99,13 @@ std::string Game::get_board_state() {
                 notation += std::to_string(count);
                 count = 0;
             }
-            
+
             notation += m;
         }
-        
+
         if ( count > 0 )
             notation += std::to_string(count);
-        
+
         rankCount++;
 
         if ( rankCount != 8 )
@@ -139,7 +139,7 @@ void Game::give_board_state(std::string notation) {
     state.fullMove = 1;
 
     board = Board{};
-    
+
     size_t i = 0;
 
     { // To scope rank and file
@@ -266,66 +266,162 @@ double Game::evaluate(const Board& b, const PositionState& /*state*/) {
     return whiteScore - blackScore;
 }
 
-// https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning#Pseudocode
-Move Game::get_move() {
-    auto alphabeta_runner = [&](auto&& self, Board node, PositionState state, int depth, double alpha, double beta, bool maxPlayer, std::vector<Move>& pv) -> double {
-        std::vector<Move> child = children(node, state);
+double Game::alphabeta(const Board& node, const PositionState& state, int depth, double alpha, double beta, bool maxPlayer, std::vector<Move>& pv) {
+    std::vector<Move> child = children(node, state);
 
-        if (depth == 0 || child.empty()) {
-            pv.clear();
-            return evaluate(node, state);
+    if (depth == 0 || child.empty()) {
+        pv.clear();
+        return evaluate(node, state);
+    }
+
+    double bestScore = maxPlayer ? MIN_SCORE : MAX_SCORE;
+    std::vector<Move> bestLine;
+
+    for (const Move& mx : child) {
+        auto next = update_board(node, state, mx, child);
+        if (!next) {
+            continue;
         }
 
-        double bestScore = maxPlayer ? MIN_SCORE : MAX_SCORE;
-        std::vector<Move> bestLine;
+        auto [b, s] = *next;
+        std::vector<Move> childLine;
 
-        for (Move mx : child) {
-            auto next = update_board(node, state, mx, child);
+        double score = alphabeta(b, s, depth - 1, alpha, beta, !maxPlayer, childLine);
+
+        bool better = maxPlayer ? (score > bestScore) : (score < bestScore);
+        if (better) {
+            bestScore = score;
+            bestLine.clear();
+            bestLine.push_back(mx);
+            bestLine.insert(bestLine.end(), childLine.begin(), childLine.end());
+        }
+
+        if (maxPlayer) {
+            alpha = std::max(alpha, bestScore);
+            if (alpha >= beta) {
+                break;
+            }
+        } else {
+            beta = std::min(beta, bestScore);
+            if (beta <= alpha) {
+                break;
+            }
+        }
+    }
+
+    pv = std::move(bestLine);
+    return bestScore;
+}
+
+Move Game::get_move() {
+    if (checkmate() != Side::Empty) {
+        return Move{};
+    }
+
+    bestMoves.clear();
+
+    std::vector<Move> rootMoves = children(board, state);
+    if (rootMoves.empty()) {
+        return Move{};
+    }
+
+    const bool rootMaxPlayer = (state.toMove == Side::White);
+
+    struct RootResult {
+        double score = 0.0;
+        std::vector<Move> line;
+        bool valid = false;
+    };
+
+    std::vector<RootResult> results(rootMoves.size());
+
+    std::atomic<std::size_t> nextIndex{0};
+
+    auto worker = [&]() {
+        while (true) {
+            std::size_t i = nextIndex.fetch_add(1, std::memory_order_relaxed);
+            if (i >= rootMoves.size()) {
+                return;
+            }
+
+            const Move& mx = rootMoves[i];
+            auto next = update_board(board, state, mx, rootMoves);
             if (!next) {
                 continue;
             }
 
             auto [b, s] = *next;
-
             std::vector<Move> childLine;
 
-            double score = self(self, b, s, depth - 1, alpha, beta, !maxPlayer, childLine);
+            double score = alphabeta(
+                    b, s,
+                    SEARCH_DEPTH - 1,
+                    MIN_SCORE,
+                    MAX_SCORE,
+                    !rootMaxPlayer,
+                    childLine);
 
-            bool better = maxPlayer ? (score > bestScore) : (score < bestScore);
-
-            if (better) {
-                bestScore = score;
-
-                bestLine.clear();
-                bestLine.push_back(mx);
-                bestLine.insert(bestLine.end(), childLine.begin(), childLine.end());
-            }
-
-            if (maxPlayer) {
-                alpha = std::max(alpha, bestScore);
-                if (alpha >= beta) {
-                    break;
-                }
-            } else {
-                beta = std::min(beta, bestScore);
-                if (beta <= alpha) {
-                    break;
-                }
-            }
+            results[i].valid = true;
+            results[i].score = score;
+            results[i].line.clear();
+            results[i].line.push_back(mx);
+            results[i].line.insert(results[i].line.end(), childLine.begin(), childLine.end());
         }
-
-        pv = std::move(bestLine);
-        return bestScore;
     };
 
-    if (checkmate() != Side::Empty) {
-        return Move();
+    auto manager = [&]() {
+        unsigned int threadCount =
+#if CHESS_SEARCH_THREADS > 0
+            static_cast<unsigned int>(CHESS_SEARCH_THREADS);
+#else
+        std::thread::hardware_concurrency();
+#endif
+
+        if (threadCount == 0) {
+            threadCount = 1;
+        }
+
+        if (threadCount > rootMoves.size()) {
+            threadCount = static_cast<unsigned int>(rootMoves.size());
+        }
+
+        std::vector<std::thread> workers;
+        workers.reserve(threadCount);
+
+        for (unsigned int i = 0; i < threadCount; ++i) {
+            workers.emplace_back(worker);
+        }
+
+        for (auto& t : workers) {
+            t.join();
+        }
+    };
+
+    std::thread managerThread(manager);
+    managerThread.join();
+
+    bool found = false;
+    double bestScore = rootMaxPlayer ? MIN_SCORE : MAX_SCORE;
+
+    for (const auto& result : results) {
+        if (!result.valid || result.line.empty()) {
+            continue;
+        }
+
+        if (!found) {
+            bestScore = result.score;
+            bestMoves = result.line;
+            found = true;
+            continue;
+        }
+
+        bool better = rootMaxPlayer ? (result.score > bestScore) : (result.score < bestScore);
+
+        if (better) {
+            bestScore = result.score;
+            bestMoves = result.line;
+        }
     }
-
-    bestMoves.clear();
-
-    const bool maxPlayer = (state.toMove == Side::White);
-    alphabeta_runner(alphabeta_runner, board, state, SEARCH_DEPTH, MIN_SCORE, MAX_SCORE, maxPlayer, bestMoves);
 
     return bestMoves.empty() ? Move{} : bestMoves.front();
 }
@@ -386,10 +482,10 @@ Game::update_board(const Board& oldBoard, const PositionState& oldState, const M
 
         // en passant capture
         if ((moving == Piece::White_Pawn || moving == Piece::Black_Pawn) &&
-            captured == Piece::Empty &&
-            old_ep.rank != -1 && old_ep.file != -1 &&
-            chosen.to == old_ep &&
-            std::abs(chosen.to.file - chosen.from.file) == 1) {
+                captured == Piece::Empty &&
+                old_ep.rank != -1 && old_ep.file != -1 &&
+                chosen.to == old_ep &&
+                std::abs(chosen.to.file - chosen.from.file) == 1) {
             int cap_rank = (moving == Piece::White_Pawn)
                 ? (chosen.to.rank + 1)
                 : (chosen.to.rank - 1);
@@ -409,8 +505,8 @@ Game::update_board(const Board& oldBoard, const PositionState& oldState, const M
 
         // castling rook move
         if ((moving == Piece::White_King || moving == Piece::Black_King) &&
-            chosen.from.rank == chosen.to.rank &&
-            std::abs(chosen.to.file - chosen.from.file) == 2) {
+                chosen.from.rank == chosen.to.rank &&
+                std::abs(chosen.to.file - chosen.from.file) == 2) {
             int rank = chosen.from.rank;
             if (chosen.to.file == 6) {
                 Piece rook = board[rank][7];
@@ -607,10 +703,10 @@ std::vector<Move> Game::children(const Board& board, const PositionState& st) {
 
         // en-passant capture (use st.enPassant, not Game::en_passant)
         if ((moving == Piece::White_Pawn || moving == Piece::Black_Pawn) &&
-            captured == Piece::Empty &&
-            st.enPassant.is_valid() &&
-            m.to == st.enPassant &&
-            std::abs(m.to.file - m.from.file) == 1) {
+                captured == Piece::Empty &&
+                st.enPassant.is_valid() &&
+                m.to == st.enPassant &&
+                std::abs(m.to.file - m.from.file) == 1) {
             int cap_rank = (moving == Piece::White_Pawn) ? (m.to.rank + 1) : (m.to.rank - 1);
             if (cap_rank >= 0 && cap_rank < 8)
                 b[cap_rank][m.to.file] = Piece::Empty;
@@ -618,8 +714,8 @@ std::vector<Move> Game::children(const Board& board, const PositionState& st) {
 
         // castling rook move
         if ((moving == Piece::White_King || moving == Piece::Black_King) &&
-            m.from.rank == m.to.rank &&
-            std::abs(m.to.file - m.from.file) == 2) {
+                m.from.rank == m.to.rank &&
+                std::abs(m.to.file - m.from.file) == 2) {
             int rank = m.from.rank;
             if (m.to.file == 6) { // king-side
                 b[rank][5] = b[rank][7];
@@ -689,7 +785,7 @@ std::vector<Move> Game::children(const Board& board, const PositionState& st) {
                     if (is_enemy(target)) add_pawn_move(r, f, tr, tf);
 
                     if (st.enPassant.rank != -1 && st.enPassant.file != -1 &&
-                        st.enPassant.rank == tr && st.enPassant.file == tf) {
+                            st.enPassant.rank == tr && st.enPassant.file == tf) {
                         pseudo.emplace_back(r, f, tr, tf);
                     }
                 }
@@ -723,38 +819,38 @@ std::vector<Move> Game::children(const Board& board, const PositionState& st) {
 
                 if (st.toMove == Side::White && r == 7 && f == 4) {
                     if (st.castle.whiteKingSide &&
-                        board[7][7] == Piece::White_Rook &&
-                        board[7][5] == Piece::Empty && board[7][6] == Piece::Empty &&
-                        !attacked_by_board(board, opp, 7, 4) &&
-                        !attacked_by_board(board, opp, 7, 5) &&
-                        !attacked_by_board(board, opp, 7, 6)) {
+                            board[7][7] == Piece::White_Rook &&
+                            board[7][5] == Piece::Empty && board[7][6] == Piece::Empty &&
+                            !attacked_by_board(board, opp, 7, 4) &&
+                            !attacked_by_board(board, opp, 7, 5) &&
+                            !attacked_by_board(board, opp, 7, 6)) {
                         pseudo.emplace_back(7, 4, 7, 6);
                     }
                     if (st.castle.whiteQueenSide &&
-                        board[7][0] == Piece::White_Rook &&
-                        board[7][1] == Piece::Empty && board[7][2] == Piece::Empty && board[7][3] == Piece::Empty &&
-                        !attacked_by_board(board, opp, 7, 4) &&
-                        !attacked_by_board(board, opp, 7, 3) &&
-                        !attacked_by_board(board, opp, 7, 2)) {
+                            board[7][0] == Piece::White_Rook &&
+                            board[7][1] == Piece::Empty && board[7][2] == Piece::Empty && board[7][3] == Piece::Empty &&
+                            !attacked_by_board(board, opp, 7, 4) &&
+                            !attacked_by_board(board, opp, 7, 3) &&
+                            !attacked_by_board(board, opp, 7, 2)) {
                         pseudo.emplace_back(7, 4, 7, 2);
                     }
                 }
 
                 if (st.toMove == Side::Black && r == 0 && f == 4) {
                     if (st.castle.blackKingSide &&
-                        board[0][7] == Piece::Black_Rook &&
-                        board[0][5] == Piece::Empty && board[0][6] == Piece::Empty &&
-                        !attacked_by_board(board, opp, 0, 4) &&
-                        !attacked_by_board(board, opp, 0, 5) &&
-                        !attacked_by_board(board, opp, 0, 6)) {
+                            board[0][7] == Piece::Black_Rook &&
+                            board[0][5] == Piece::Empty && board[0][6] == Piece::Empty &&
+                            !attacked_by_board(board, opp, 0, 4) &&
+                            !attacked_by_board(board, opp, 0, 5) &&
+                            !attacked_by_board(board, opp, 0, 6)) {
                         pseudo.emplace_back(0, 4, 0, 6);
                     }
                     if (st.castle.blackQueenSide &&
-                        board[0][0] == Piece::Black_Rook &&
-                        board[0][1] == Piece::Empty && board[0][2] == Piece::Empty && board[0][3] == Piece::Empty &&
-                        !attacked_by_board(board, opp, 0, 4) &&
-                        !attacked_by_board(board, opp, 0, 3) &&
-                        !attacked_by_board(board, opp, 0, 2)) {
+                            board[0][0] == Piece::Black_Rook &&
+                            board[0][1] == Piece::Empty && board[0][2] == Piece::Empty && board[0][3] == Piece::Empty &&
+                            !attacked_by_board(board, opp, 0, 4) &&
+                            !attacked_by_board(board, opp, 0, 3) &&
+                            !attacked_by_board(board, opp, 0, 2)) {
                         pseudo.emplace_back(0, 4, 0, 2);
                     }
                 }

@@ -18,6 +18,8 @@ This chess bot was written through CUSEC's (Clarkson University Software Enginee
 
 There is no real checking on user input. Bad inputs will lead to unintended behavior. The computer does not care whose side it is and will make a move regardless, it is up to the user to ensure the input is correct.
 
+***Note: I recommend change the macros `CHESS_SEARCH_THREADS` and `SEARCH_DEPTH` in `src/utils/chess.h` to different values. Set `CHESS_SEARCH_THREADS` to the amount of cores you have at your disposal, and `SEARCH_DEPTH` to a value between 5-10, depending on how long you want to wait (~30s per move at `SEARCH_DEPTH = 7` and `CHESS_SEARCH_THREADS = 24`).***
+
 |Action|Letter|Description|
 |:--:|:--:|:---|
 |Exit|q|Exits the program.|
@@ -30,3 +32,8 @@ There is no real checking on user input. Bad inputs will lead to unintended beha
 |Give Board|p|Allows user to give a new board, this will reset the game.|
 |Get Board|b|Gets the current board state.|
 |Get Score|i|Gets the current boards score.|
+|Loop|l|Loops Get move until a ending position is reached, takes a long time.|
+
+### Viewing the Game
+
+`convert.py` is a python script that will convert the output from End Game into technically valid PGN notation, as to be input into [Chess.com](https://www.chess.com/analysis). This file was written by [ChatGPT](https://chatgpt.com/), and requires manually input of the game notation in the code.
