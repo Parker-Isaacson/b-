@@ -18,7 +18,7 @@ This chess bot was written through CUSEC's (Clarkson University Software Enginee
 
 There is no real checking on user input. Bad inputs will lead to unintended behavior. The computer does not care whose side it is and will make a move regardless, it is up to the user to ensure the input is correct.
 
-***Note: I recommend change the macros `CHESS_SEARCH_THREADS` and `SEARCH_DEPTH` in `src/utils/chess.h` to different values. Set `CHESS_SEARCH_THREADS` to the amount of cores you have at your disposal, and `SEARCH_DEPTH` to a value between 5-10, depending on how long you want to wait (~30s per move at `SEARCH_DEPTH = 7` and `CHESS_SEARCH_THREADS = 24`).***
+***Note: I recommend change the macros `CHESS_SEARCH_THREADS` and `SEARCH_DEPTH` in `src/utils/chess.h` to different values. Set `CHESS_SEARCH_THREADS` to the amount of cores you have at your disposal, and `SEARCH_DEPTH` to a value between 5-10, depending on how long you want to wait (~30-60s per move at `SEARCH_DEPTH = 7` and `CHESS_SEARCH_THREADS = 24`).***
 
 |Action|Letter|Description|
 |:--:|:--:|:---|
