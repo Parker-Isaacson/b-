@@ -19,6 +19,7 @@ enum class Action {
     // Board
     GIVE_BOARD, // p
     GET_BOARD, // b
+    GET_SCORE, // i
 };
 
 // Tests, en passant, castling, pins, checkmate, check
@@ -115,6 +116,10 @@ void perform_action(const Action& action, Game& game) {
                                       std::cout << "Valid moves are: " << game.print_moves() << "\n";
                                       break;
                                   }
+        case Action::GET_SCORE: {
+                                    std::cout << "The current score is: " << game.print_score() << "\n";
+                                    break;
+                                }
     }
 }
 
@@ -149,6 +154,8 @@ Action get_action() {
                 return Action::GET_BOARD;
             case 'v':
                 return Action::VALID_MOVES;
+            case 'i':
+                return Action::GET_SCORE;
             default:
                 return Action::NONE;
         }

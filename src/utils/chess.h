@@ -293,15 +293,12 @@ class Game {
         Board board{};
         PositionState state;
 
-        // Listing of best moves for optimal position
         std::vector<Move> bestMoves;
-
-        // Moves made
         std::vector<Move> completed;
-
-        // Inner functions
         std::vector<Move> moves; // Legal move list
+        
         static std::optional<std::pair<Board, PositionState>> update_board(const Board& board, const PositionState& state, const Move& move, const std::vector<Move>& moves);
+        static double evaluate(const Board& board, const PositionState& state);
         bool check_moves(); // Clear and recalculate valid moves
         static std::vector<Move> children(const Board& board, const PositionState& st); // Find all children moves of current position
         static Side side_of_piece(Piece p); // Checks if the current piece is part of the current player.
@@ -321,5 +318,6 @@ class Game {
         std::string end_game(); // Print all moves made, and current board state
         std::string print_moves(); // Print the listing of moves and current board state
         std::string print_board(); // Print the board as nicely as possible!
+        double print_score(); // Prints the score of the current board
         Side checkmate(); // Returns the winning side if possible
 };

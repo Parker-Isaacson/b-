@@ -29,3 +29,4 @@ There is no real checking on user input. Bad inputs will lead to unintended beha
 |Valid Moves|v|Gets the list of valid moves.|
 |Give Board|p|Allows user to give a new board, this will reset the game.|
 |Get Board|b|Gets the current board state.|
+|Get Score|i|Gets the current boards score.|

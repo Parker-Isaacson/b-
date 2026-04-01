@@ -211,74 +211,69 @@ void Game::give_board_state(std::string notation) {
     check_moves();
 }
 
-// https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning#Pseudocode
-Move Game::get_move() {
-    auto evaluate = [](const Board& b, const PositionState& state) -> double {
-        double whiteScore = 0;
-        double blackScore = 0;
+double Game::evaluate(const Board& b, const PositionState& /*state*/) {
+    double whiteScore = 0;
+    double blackScore = 0;
 
-        // White accesses like [r][f]
-        // Black accesses like [r][7 - f]
-        // To encourage capturing, add each pieces value to the respective teams score, these are better than positional scores, besides pawns
-        for (int r = 0; r < 8; r++) {
-            for (int f = 0; f < 8; f++) {
-                switch (b[r][f]) {
-                    case Piece::White_King: 
-                        whiteScore += evalKing[r][f];
-                        break;
-                    case Piece::White_Queen:
-                        whiteScore += evalQueen[r][f] + 8;
-                        break;
-                    case Piece::White_Bishop:
-                        whiteScore += evalBishop[r][f] + 3;
-                        break;
-                    case Piece::White_Knight:
-                        whiteScore += evalKnight[r][f] + 3;
-                        break;
-                    case Piece::White_Rook:
-                        whiteScore += evalRook[r][f] + 5;
-                            break;
-                    case Piece::White_Pawn: 
-                        whiteScore += evalPawn[r][f] + 1;
-                        break;
-                    case Piece::Black_King:
-                        blackScore += evalKing[r][7 - f];
-                        break;
-                    case Piece::Black_Queen:
-                        blackScore += evalQueen[r][7 - f] + 8;
-                        break;
-                    case Piece::Black_Bishop:
-                        blackScore += evalBishop[r][7 - f] + 3;
-                        break;
-                    case Piece::Black_Knight:
-                        blackScore += evalKnight[r][7 - f] + 3;
-                        break;
-                    case Piece::Black_Rook:
-                        blackScore += evalRook[r][7 - f] + 5;
-                        break;
-                    case Piece::Black_Pawn:
-                        blackScore += evalPawn[r][7 - f] + 1;
-                        break;
-                    default: break;
-                }
+    for (int r = 0; r < 8; r++) {
+        for (int f = 0; f < 8; f++) {
+            switch (b[r][f]) {
+                case Piece::White_King:
+                    whiteScore += evalKing[r][f];
+                    break;
+                case Piece::White_Queen:
+                    whiteScore += evalQueen[r][f] + 8;
+                    break;
+                case Piece::White_Bishop:
+                    whiteScore += evalBishop[r][f] + 3;
+                    break;
+                case Piece::White_Knight:
+                    whiteScore += evalKnight[r][f] + 3;
+                    break;
+                case Piece::White_Rook:
+                    whiteScore += evalRook[r][f] + 5;
+                    break;
+                case Piece::White_Pawn:
+                    whiteScore += evalPawn[r][f] + 1;
+                    break;
+
+                case Piece::Black_King:
+                    blackScore += evalKing[7 - r][7 - f];
+                    break;
+                case Piece::Black_Queen:
+                    blackScore += evalQueen[7 - r][7 - f] + 8;
+                    break;
+                case Piece::Black_Bishop:
+                    blackScore += evalBishop[7 - r][7 - f] + 3;
+                    break;
+                case Piece::Black_Knight:
+                    blackScore += evalKnight[7 - r][7 - f] + 3;
+                    break;
+                case Piece::Black_Rook:
+                    blackScore += evalRook[7 - r][7 - f] + 5;
+                    break;
+                case Piece::Black_Pawn:
+                    blackScore += evalPawn[7 - r][7 - f] + 1;
+                    break;
+
+                default:
+                    break;
             }
         }
+    }
 
-        return (state.toMove == Side::White) ? (whiteScore - blackScore) : (blackScore - whiteScore);
-    };
+    // Always score from White's perspective.
+    return whiteScore - blackScore;
+}
 
-    // Takes the current board, state of board, move that got here, depth to search, alpha and beta for weights, and if the current player is the maximizing player
-    // Returns the next best move, and the weight of the ending position
+// https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning#Pseudocode
+Move Game::get_move() {
     auto alphabeta_runner = [&](auto&& self, Board node, PositionState state, int depth, double alpha, double beta, bool maxPlayer, std::vector<Move>& pv) -> double {
         std::vector<Move> child = children(node, state);
 
-        if (depth == 0) {
+        if (depth == 0 || child.empty()) {
             pv.clear();
             return evaluate(node, state);
-        }
-        else if (child.empty()) {
-            pv.clear();
-            return evaluate(node, state) + 12; // This position leads to checkmate
         }
 
         double bestScore = maxPlayer ? MIN_SCORE : MAX_SCORE;
@@ -293,6 +288,7 @@ Move Game::get_move() {
             auto [b, s] = *next;
 
             std::vector<Move> childLine;
+
             double score = self(self, b, s, depth - 1, alpha, beta, !maxPlayer, childLine);
 
             bool better = maxPlayer ? (score > bestScore) : (score < bestScore);
@@ -321,15 +317,15 @@ Move Game::get_move() {
         pv = std::move(bestLine);
         return bestScore;
     };
-    auto alphabeta = [&](Board node, PositionState state, int depth, double alpha, double beta, bool maxPlayer, std::vector<Move>& pv) {
-        alphabeta_runner(alphabeta_runner, node, state, depth, alpha, beta, maxPlayer, pv);
-    };
 
-    if (checkmate() != Side::Empty)
+    if (checkmate() != Side::Empty) {
         return Move();
+    }
 
     bestMoves.clear();
-    alphabeta(board, state, SEARCH_DEPTH, MIN_SCORE, MAX_SCORE, true, bestMoves);
+
+    const bool maxPlayer = (state.toMove == Side::White);
+    alphabeta_runner(alphabeta_runner, board, state, SEARCH_DEPTH, MIN_SCORE, MAX_SCORE, maxPlayer, bestMoves);
 
     return bestMoves.empty() ? Move{} : bestMoves.front();
 }
@@ -877,4 +873,8 @@ std::string Game::print_board() {
     }
 
     return ret;
+}
+
+double Game::print_score() {
+    return evaluate(board, state);
 }
