@@ -638,17 +638,7 @@ def convert_to_pgn(input_text, result="*"):
 if __name__ == "__main__":
     # This is the board that comes at at `SEARCH_DEPTH = 7` after looping
     raw = r"""
-c2 c4, e7 e5, d2 d4, d8 e7, e2 e4, e8 d8, d4 e5, e7 e5, b1 c3, f8 b4, d1 d3, c7 c5, g1 f3, e5 e7, a2 a3, b4 a5, b2 b4, c5 b4,
-a3 b4, a5 b4, c1 g5, f7 f6, g5 d2, f6 f5, d2 g5, g8 f6, g5 f6, g7 f6, f3 d2, h8 f8, f2 f3, b8 c6, a1 c1, b4 a3, c3 d5, e7
-c5, d2 b3, c5 d6, c4 c5, d6 b8, d5 f6, f8 f6, e4 f5, b8 e5, e1 d1, e5 f5, d3 f5, f6 f5, h1 g1, f5 f8, c1 a1, a3 b2, a1 a2, b
-2 h8, d1 c1, a8 b8, b3 a5, c6 a5, a2 a5, h8 d4, g1 h1, d4 e3, c1 b1, b7 b6, c5 b6, e3 b6, a5 b5, c8 a6, b5 b4, a6 f1, h1 f1,
-h7 h5, h2 h4, d7 d5, f1 d1, d8 c8, d1 d5, b6 f2, b4 b8, c8 b8, d5 h5, b8 b7, h5 b5, b7 c6, b5 b4, c6 c7, b4 c4, c7 b8, c4 b
-4, b8 c8, b4 c4, c8 b8, c4 b4, b8 c8, b4 c4, c8 b8, c4 b4, b8 c8, b4 c4, c8 b8, c4 b4, b8 c8, b4 c4, c8 b8, c4 b4, b8 c8, b4
-c4, c8 b8, c4 b4, b8 c8, b4 c4, c8 b8, c4 b4, b8 c8, b4 c4, c8 b8, c4 b4, b8 c8, b4 c4, c8 b8, c4 b4, b8 c8, b4 c4, c8 b8,
-c4 b4, b8 c8, b4 c4, c8 b8, c4 b4, b8 c8, b4 c4, c8 b8, c4 b4, b8 c8, b4 c4, c8 b8, c4 b4, b8 c8, b4 c4, c8 b8, c4 b4, b8 c8
-, b4 c4, c8 b8, c4 b4, b8 c8, b4 c4, c8 b8, c4 b4, b8 c8, b4 c4, c8 b8, c4 b4, b8 c8, b4 c4, c8 b8, c4 b4, b8 c8, b4 c4, c8
-b8, c4 b4, b8 c8, b4 c4, c8 b8, c4 b4, b8 c8, b4 c4, c8 b8, c4 b4, b8 c8, b4 c4, c8 b8, c4 b4, b8 c8, b4 c4, c8 b8, c4 b4, b
-8 c8, b4 c4, c8 b8, c4 b4, b8 c8,
-2k2r2/p7/8/8/1R5P/5P2/5bP1/1K6 w - - 101 92
+d2 d4, d7 d5, c2 c4, b8 c6, c4 d5, d8 d5, e2 e3, a8 b8, b1 c3, d5 d6, f2 f4, e8 d8, g1 f3, f7 f5, h1 g1, d6 d7, a2 a3, e7 e6, b2 b3, g8 e7, f1 b5, e7 d5, d1 d2, d7 e7, b5 c6, b7 c6, f3 e5, c8 b7, g2 g3, b7 a8, e3 e4, b8 b3, e4 d5, e6 d5, a3 a4, e7 e6, d2 c2, b3 b4, a1 b1, a7 a5, c3 a2, c6 c5, a2 b4, c5 b4, c2 e2, c7 c5, e2 b5, c5 d4, b5 a5, d8 e7, a5 a8, h8 g8, a8 a7, e7 d8, a7 b8, e6 c8, e5 f7, d8 d7, f7 e5, d7 d8, e5 f7, d8 d7, f7 e5, d7 d8, e5 f7, d8 d7, f7 e5, d7 d8, e5 f7, d8 d7, f7 e5, d7 d8, e5 f7, d8 d7, f7 e5, d7 d8, e5 f7, d8 d7, f7 e5, d7 d8, e5 f7, d8 d7, f7 e5, d7 d8, e5 f7, d8 d7, f7 e5, d7 d8, e5 f7, d8 d7, f7 e5, d7 d8, e5 f7, d8 d7, f7 e5, d7 d8, e5 f7, d8 d7, f7 e5, d7 d8, e5 f7, d8 d7, f7 e5, d7 d8, e5 f7, d8 d7, f7 e5, d7 d8, e5 f7, d8 d7, f7 e5, d7 d8, e5 f7, d8 d7, f7 e5, d7 d8, e5 f7, d8 d7, f7 e5, d7 d8, e5 f7, d8 d7, f7 e5, d7 d8, e5 f7, d8 d7, f7 e5, d7 d8, e5 f7, d8 d7, f7 e5, d7 d8, e5 f7, d8 d7, f7 e5, d7 d8, e5 f7, d8 d7, f7 e5, d7 d8, e5 f7, d8 d7, f7 e5, d7 d8, e5 f7, d8 d7, f7 e5, d7 d8, e5 f7, d8 d7, f7 e5, d7 d8,
+1Qqk1br1/6pp/8/3pNp2/Pp1p1P2/6P1/7P/1RB1K1R1 w - - 101 77
 """
     print(convert_to_pgn(raw, result="*"))
