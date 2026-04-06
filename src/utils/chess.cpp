@@ -52,12 +52,10 @@ Piece string_to_piece(char c) {
     }
 }
 
+constexpr Side piece_to_side[] = {Side::Empty, Side::White, Side::White, Side::White, Side::White, Side::White, Side::White, Side::Black, Side::Black, Side::Black, Side::Black, Side::Black, Side::Black };
+
 Side Game::side_of_piece(Piece p) {
-    switch (p) {
-        case Piece::White_King: case Piece::White_Queen: case Piece::White_Bishop: case Piece::White_Knight: case Piece::White_Rook: case Piece::White_Pawn: return Side::White;
-        case Piece::Black_King: case Piece::Black_Queen: case Piece::Black_Bishop: case Piece::Black_Knight: case Piece::Black_Rook: case Piece::Black_Pawn: return Side::Black;
-        default: return Side::Empty;
-    }
+    return piece_to_side[static_cast<int>(p)];
 }
 
 Game::Game() {
@@ -569,6 +567,7 @@ Game::update_board(const Board& oldBoard, const PositionState& oldState, const M
 std::vector<Move> Game::children(const Board& board, const PositionState& st) {
     std::vector<Move> legal;
     std::vector<Move> pseudo;
+    pseudo.reserve(218); // https://www.chessprogramming.org/Chess_Position
 
     auto in_bounds = [](int r, int f) {
         return r >= 0 && r < 8 && f >= 0 && f < 8;
