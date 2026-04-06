@@ -4,3 +4,6 @@ build/*
 
 # Main compiled file
 main
+
+# valgrind output
+callgrind*

@@ -16,7 +16,7 @@
 
 #define MIN_SCORE -1000000
 #define MAX_SCORE  1000000
-#define SEARCH_DEPTH 7
+#define SEARCH_DEPTH 4
 
 #define RESET  "\033[0m"
 #define WHITE_BG "\033[107m"
