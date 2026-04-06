@@ -865,15 +865,26 @@ std::vector<Move> Game::children(const Board& board, const PositionState& st) {
 
     Side opp = opponent(st.toMove);
 
+    int kr = -1, kf = -1;
+    if (!find_king(board, st.toMove, kr, kf))
+        return pseudo;
+
+    legal.reserve(pseudo.size());
+    
     for (const Move& m : pseudo) {
         Board b = board;
         apply_move_on(b, m);
 
-        int kr = -1, kf = -1;
-        if (!find_king(b, st.toMove, kr, kf))
-            continue;
+        int tkr = kr;
+        int tkf = kf;
 
-        if (attacked_by_board(b, opp, kr, kf))
+        Piece moving = board[m.from.rank][m.from.file];
+        if (moving == Piece::White_King || moving == Piece::Black_King) {
+            tkr = m.to.rank;
+            tkf = m.to.file;
+        }
+
+        if (attacked_by_board(b, opp, tkr, tkf))
             continue;
 
         legal.push_back(m);
