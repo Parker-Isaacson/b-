@@ -1,5 +1,6 @@
 #include <iostream>
 #include <chrono>
+#include <string.h>
 #include "utils/chess.h"
 
 enum class Action {
@@ -31,7 +32,19 @@ bool test_game();
 Action get_action();
 void perform_action(const Action& action, Game& game);
 
-int main(/*int argc, char** argv*/) {
+int main(int argc, char** argv) {
+    if (argc > 1) {
+        if (strcmp(argv[1], "--test") == 0) {
+            Game g(DEFAULT_BOARD);
+            perform_action(Action::LOOP, g);
+            return 0;
+        } else {
+            std::cout << "Unknown paramter(s):\n";
+            for (int i = 1; i < argc; i++)
+                std::cout << "\t" << argv[i] << "\n";
+        }
+    }
+
     if(!test_game()) {
         std::cout << "Test fail, make sure you are up to date!\n";
         return 1;
