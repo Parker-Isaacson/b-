@@ -2,7 +2,7 @@
 
 β- is a chess bot, written entrierly algorithmically, aiming to achieve a [Chess.com](https://www.chess.com/home) elo of over 2000.
 
-Stockfish rates β- with an elo of ~1750 at a move depth of 7. https://www.chessigma.com/games/4820e560-b9c0-43e1-b37d-ac2693c67f2d
+Stockfish rates β- with an elo of ~1750 at a move depth of 7. https://www.chessigma.com/games/4820e560-b9c0-43e1-b37d-ac2693c67f2d as of commit bb4bbd9.
 
 ### Rules
 
