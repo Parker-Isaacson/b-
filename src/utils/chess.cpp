@@ -97,7 +97,77 @@ std::string Board::get_board_state() {
     return notation;
 }
 
-void Board::give_board_state(std::string notation) { } // TODO
+void Board::give_board_state(std::string notation) {
+    toMove = White;
+    whiteKingSide = whiteQueenSide = blackKingSide = blackQueenSide = false;
+    enPassant = Square();
+    halfMove = 0;
+    fullMove = 1;
+    board = std::array<Piece, 64>();
+
+    size_t i = 0;
+
+    {
+        int rank = 0, file = 0;
+        for (; i < notation.length(); i++) {
+            if (notation[i] == ' ')
+                break;
+
+            if (notation[i] == '/') {
+                rank += 1;
+                file = 0;
+                continue;
+            }
+
+            if (std::isdigit(notation[i])) {
+                file += notation[i] - '0';
+                continue;
+            }
+
+            board[63 - (rank * 8 + file)] = string_to_piece(notation[i]);
+            file++;
+        }
+    }
+
+    if ( notation[++i] == 'b' )
+        toMove = Black;
+
+    i += 2;
+    if ( notation[i] != '-' ) {
+        if ( notation[i] == 'K' ) {
+            whiteKingSide = true;
+            ++i;
+        }
+        if ( notation[i] == 'Q' ) {
+            whiteQueenSide = true;
+            ++i;
+        }
+        if ( notation[i] == 'k' ) {
+            blackKingSide = true;
+            ++i;
+        }
+        if ( notation[i] == 'q' ) {
+            blackQueenSide = true;
+            ++i;
+        }
+    }
+
+    i += 1;
+    if ( notation[i] != '-' ) {
+        enPassant = Square(notation[i], notation[i + 1]);
+        ++i;
+    }
+
+    i += 2;
+    int j = 0;
+    for (; std::isdigit(notation[i + j]); j++) { } // Find the length of the half move clock
+    halfMove = std::stoi(notation.substr(i, j));
+    i += j + 1;
+
+    j = 0;
+    for (; std::isdigit(notation[i + j]); j++) { } // Find the length of the full move clock
+    fullMove = std::stoi(notation.substr(i, j));
+}
 
 std::string Board::print_moves() { } // TODO 
 

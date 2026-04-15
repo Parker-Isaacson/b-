@@ -172,6 +172,37 @@ struct Board {
     std::string print_board();
 };
 
+class Game {
+    public:
+        Board curr{};
+
+        std::vector<Move> bestMoves{};
+        std::vector<Move> completed{};
+
+        static double evaluate(const Board& board);
+        bool check_moves(); // Clear and recalculate valid moves
+        static Side side_of_piece(Piece p); // Checks if the current piece is part of the current player.
+
+        static double alphabeta(const Board& node, int depth, double alpha, double beta, bool maxPlayer, std::vector<Move>& pv);
+    public:
+        constexpr Game() = default; // TODO
+        Game(std::string notation);
+
+        std::string get_board_state(); // Creates and returns the board state in Forsyth-Edwards Notation
+        void give_board_state(std::string state); // Returns a new game board from the state provided
+
+        Move get_move(); // Gets the best move, this is the chess bot
+        bool give_move(Move move); // Updates the board with a provided 
+        bool give_move(Square from, Square to, Piece promo = Piece::Empty);
+
+        std::string end_game(); // Print all moves made, and current board state
+        std::string print_moves(); // Print the listing of moves and current board state
+        std::string print_board(); // Print the board as nicely as possible!
+        double print_score(); // Prints the score of the current board
+        Side checkmate(); // Returns the winning side if possible
+};
+
+// Inline squares
 inline constexpr Square A1{0};
 inline constexpr Square A2{1};
 inline constexpr Square A3{2};
@@ -243,35 +274,5 @@ inline constexpr Square H5{60};
 inline constexpr Square H6{61};
 inline constexpr Square H7{62};
 inline constexpr Square H8{63};
-
-class Game {
-    public:
-        Board curr{};
-
-        std::vector<Move> bestMoves{};
-        std::vector<Move> completed{};
-
-        static double evaluate(const Board& board);
-        bool check_moves(); // Clear and recalculate valid moves
-        static Side side_of_piece(Piece p); // Checks if the current piece is part of the current player.
-
-        static double alphabeta(const Board& node, int depth, double alpha, double beta, bool maxPlayer, std::vector<Move>& pv);
-    public:
-        constexpr Game() = default; // TODO
-        Game(std::string notation);
-
-        std::string get_board_state(); // Creates and returns the board state in Forsyth-Edwards Notation
-        void give_board_state(std::string state); // Returns a new game board from the state provided
-
-        Move get_move(); // Gets the best move, this is the chess bot
-        bool give_move(Move move); // Updates the board with a provided 
-        bool give_move(Square from, Square to, Piece promo = Piece::Empty);
-
-        std::string end_game(); // Print all moves made, and current board state
-        std::string print_moves(); // Print the listing of moves and current board state
-        std::string print_board(); // Print the board as nicely as possible!
-        double print_score(); // Prints the score of the current board
-        Side checkmate(); // Returns the winning side if possible
-};
 
 #endif // CHESS_H
