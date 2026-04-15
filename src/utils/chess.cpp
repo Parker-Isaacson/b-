@@ -169,9 +169,57 @@ void Board::give_board_state(std::string notation) {
     fullMove = std::stoi(notation.substr(i, j));
 }
 
-std::string Board::print_moves() { } // TODO 
+std::string Board::print_moves() { // TODO: test
+    std::string ret = get_board_state()
+        + "\nMoves: " + std::to_string(moves.size())
+        + "\t To Move: " + ((toMove == White) ? "White" : "Black") + "\n";
 
-std::string Board::print_board() { } // TODO
+    for (Move m : moves)
+        ret += m.to_string() + "\n";
+
+    return ret;
+}
+
+std::string Board::print_board() {
+    std::string ret;
+
+    ret += "  a b c d e f g h\n\n";
+
+    for (int r = 7; r >= 0; r--) {
+
+        std::string top;
+        std::string bottom;
+
+        top += std::to_string(8 - r);
+        top += ' ';
+        bottom += "  ";
+
+        for (int f = 7; f >= 0; f--) {
+
+            bool whiteSquare = ((r + f) % 2 == 0);
+
+            const char* bg = whiteSquare ? WHITE_BG : BLACK_BG;
+            const char* fg = whiteSquare ? BLACK_TEXT : WHITE_TEXT;
+
+            char p = piece_to_string(board[r * 8 + f]);
+
+            top += bg;
+            top += fg;
+            top += p;
+            top += " ";
+            top += RESET;
+
+            bottom += bg;
+            bottom += "  ";
+            bottom += RESET;
+        }
+
+        ret += top + "\n";
+        ret += bottom + "\n";
+    }
+
+    return ret;
+}
 
 Game::Game(std::string notation) {
     give_board_state(notation);
@@ -213,6 +261,6 @@ std::string Game::print_board() {
     return curr.print_board();
 }
 
-double Game::print_score() { } // TODO
+double Game::print_score() { }
 
 Side Game::checkmate() { } // TODO

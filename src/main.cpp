@@ -37,6 +37,7 @@ int main(int argc, char** argv) {
     Board b;
     b.give_board_state("rnb2b1r/p1qpkp1p/1pQ2np1/2p1p3/1P1P2P1/4P3/P1PB1P1P/RN2KBNR w KQ - 1 8");
     std::cout << b.get_board_state() << std::endl;
+    std::cout << b.print_board() << std::endl;
 
     std::cout << "Done" << std::endl;
     return 0;
