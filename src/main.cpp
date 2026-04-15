@@ -33,6 +33,13 @@ Action get_action();
 void perform_action(const Action& action, Game& game);
 
 int main(int argc, char** argv) {
+    /* -- Debug Section -- */
+    Game gx;
+    std::cout << gx.get_board_state() << std::endl;
+
+    std::cout << "Done" << std::endl;
+    return 0;
+    /* -- Debug Section -- */
     if (argc > 1) {
         if (strcmp(argv[1], "--test") == 0) {
             Game g(DEFAULT_BOARD);

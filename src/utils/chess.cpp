@@ -56,14 +56,45 @@ std::string Board::get_board_state() {
     std::string notation = "";
     
     int count = 0;
-    for (int i = 0; i < 64; i++) {
+    for (int i = 63; i >= 0; i--) {
         char m = piece_to_string(board[i]);
-        
+
         if (m == ' ') {
             count++;
-            continue;
+        } else {
+            if (count > 0) {
+                notation += std::to_string(count);
+                count = 0;
+            }
+
+            notation += m;
+        }
+
+        if (i % 8 == 0) { // End of a row
+            if (count > 0) {
+                notation += std::to_string(count);
+                count = 0;
+            }
+
+            if (i != 0)
+                notation += "/";
         }
     }
+
+    notation += (toMove == White) ? " w " : " b ";
+
+    notation += (whiteKingSide) ? "K" : "";
+    notation += (whiteQueenSide) ? "Q" : "";
+    notation += (blackKingSide) ? "k" : "";
+    notation += (blackQueenSide) ? "q" : "";
+
+    notation += (!(whiteKingSide || whiteQueenSide || blackKingSide || blackQueenSide)) ? "- " : " ";
+
+    notation += enPassant.to_string() + " ";
+
+    notation += std::to_string(halfMove) + " " + std::to_string(fullMove);
+
+    return notation;
 }
 
 void Board::give_board_state(std::string notation) { } // TODO

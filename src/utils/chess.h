@@ -1,7 +1,7 @@
 #ifndef CHESS_H
 #define CHESS_H
 
-#include <istream>
+#include <iostream>
 #include <string>
 #include <array>
 #include <stack>
@@ -48,6 +48,9 @@ typedef enum : int8_t {
     Black = 2,
 } Side;
 
+char piece_to_string(Piece p);
+Piece string_to_piece(char c);
+
 struct Square {
     int file = -1; // 0-7 to a-h
     int rank = -1; // 0-7 to 1-8
@@ -61,11 +64,31 @@ struct Square {
     constexpr Square(int real_)
         : real(real_) {
             rank = real_ % 8;
-            file = (real_ - rank) >> 3;
+            file = (real_ - rank) / 8;
         }
-    explicit Square(const std::string& s) { } // TODO
+    explicit Square(const std::string& s) {
+        if (s.size() != 2)
+            return;
+
+        char f = static_cast<char>(std::tolower(s[0]));
+        char r = s[1];
+
+        if (f < 'a' || f > 'h' || r < '1' || r > '8') return;
+
+        file = f - 'a';
+        rank = '8' - r;
+
+        real = rank * 8 + file;
+    }
     
-    std::string to_string() const { } // TODO
+    std::string to_string() const {
+        if (file < 0 || file > 7 || rank < 0 || rank > 7)
+            return "-";
+
+        char f = static_cast<char>('a' + file);
+        char r = static_cast<char>('8' - rank);
+        return std::string(1, f) + r;
+    }
     static Square from_string(const std::string& s) {
         return Square(s);
     }
@@ -85,9 +108,24 @@ struct Move {
     constexpr Move() = default;
     constexpr Move(Square from_, Square to_, Piece promotion_ = Piece::Empty)
         : from(from_), to(to_), promotion(promotion_) {}
-    explicit Move(const std::string& m) { } // TODO
+    explicit Move(const std::string& m) {
+        if (m.length() != 4 && m.length() != 5)
+            return;
+        from = Square(m.substr(0, 2));
+        to = Square(m.substr(2, 2));
+        if (m.length() < 5)
+            return;
+        promotion = string_to_piece(m[4]);
+    }
 
-    std::string to_string() const { } // TODO
+    std::string to_string() const {
+        std::string ret = from.to_string() + " " + to.to_string(); 
+
+        if (promotion != Piece::Empty)
+            ret += " = " + std::string(1, piece_to_string(promotion));
+
+        return ret;
+    }
     static Move from_string(const std::string& s) {
         return Move(s);
     }
@@ -220,7 +258,7 @@ class Game {
         static double alphabeta(const Board& node, int depth, double alpha, double beta, bool maxPlayer, std::vector<Move>& pv);
     public:
         constexpr Game() = default; // TODO
-        Game(std::string notation); // TODO
+        Game(std::string notation);
 
         std::string get_board_state(); // Creates and returns the board state in Forsyth-Edwards Notation
         void give_board_state(std::string state); // Returns a new game board from the state provided
