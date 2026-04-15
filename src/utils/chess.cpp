@@ -225,7 +225,125 @@ Game::Game(std::string notation) {
     give_board_state(notation);
 }
 
-double Game::evaluate(const Board& board) { } // TODO
+double Game::evaluate(const Board& board) {
+    constexpr std::array<double, 64> evalKing = {{
+        -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -2, -2, -1, -1, -1,
+        -1, -1, -1, -2, -2, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1,
+         0,  0,  2, -1,  1, -1,  2,  0
+    }};
+
+    constexpr std::array<double, 64> evalQueen = {{
+        2, 2, 2, 2, 2, 2, 2, 2,
+        2, 2, 2, 2, 2, 2, 2, 2,
+        2, 2, 2, 2, 2, 2, 2, 2,
+        2, 2, 2, 2, 2, 2, 2, 2,
+        2, 2, 2, 2, 2, 2, 2, 2,
+        2, 2, 2, 2, 2, 2, 2, 2,
+        2, 2, 2, 2, 2, 2, 2, 2,
+        2, 2, 2, 2, 2, 2, 2, 2
+    }};
+
+    constexpr std::array<double, 64> evalBishop = {{
+        2, 2, 2, 2, 2, 2, 2, 2,
+        2, 1, 1, 1, 1, 1, 1, 2,
+        2, 1, 0, 0, 0, 0, 1, 2,
+        2, 1, 0, .5, .5, 0, 1, 2,
+        2, 1, 0, .5, .5, 0, 1, 2,
+        2, 1, 0, 0, 0, 0, 1, 2,
+        2, 1, 1, 1, 1, 1, 1, 2,
+        2, 2, 2, 2, 2, 2, 2, 2
+    }};
+
+    constexpr std::array<double, 64> evalKnight = {{
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, .5, .5, .5, .5, .5, .5, 0,
+        0, .5, 1, 1, 1, 1, .5, 0,
+        0, .5, 1, 1, 1, 1, .5, 0,
+        0, .5, 1, 1, 1, 1, .5, 0,
+        0, .5, 1, 1, 1, 1, .5, 0,
+        0, .5, .5, .5, .5, .5, .5, 0,
+        0, .5, 0, 0, 0, 0, .5, 0
+    }};
+
+    constexpr std::array<double, 64> evalRook = {{
+         0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0,  0,  0,  0,  0,  0,  0,
+        -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1,
+         0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0,  0,  0,  0,  0,  0,  0,
+         0,  0,  2,  0,  1,  0,  2,  0
+    }};
+
+    constexpr std::array<double, 64> evalPawn = {{
+        5,    5,    5,    5,    5,    5,    5,    5,
+        2.5,  2.75, 2.75, 2.75, 2.75, 2.75, 2.75, 2.5,
+        2.5,  2.5,  2.5,  2.5,  2.5,  2.5,  2.5,  2.5,
+        2,    2.25, 2.25, 2.25, 2.25, 2.25, 2.25, 2,
+        1,    1,    2,    4,    4,    2,    1,    1,
+        1,    1.125,1.25, 1.25, 1.25, 1.25, 1.125,1,
+        1,    1,    1,    1,    1,    1,    1,    1,
+        0,    0,    0,    0,    0,    0,    0,    0
+    }};
+
+    double whiteScore = 0.0;
+    double blackScore = 0.0;
+
+    for (int i = 0; i < 64; ++i) {
+        const int mirrored = 63 - i;
+
+        switch (board.board[i]) {
+            case Piece::White_King:
+                whiteScore += evalKing[i];
+                break;
+            case Piece::White_Queen:
+                whiteScore += evalQueen[i] + 8;
+                break;
+            case Piece::White_Bishop:
+                whiteScore += evalBishop[i] + 3;
+                break;
+            case Piece::White_Knight:
+                whiteScore += evalKnight[i] + 3;
+                break;
+            case Piece::White_Rook:
+                whiteScore += evalRook[i] + 5;
+                break;
+            case Piece::White_Pawn:
+                whiteScore += evalPawn[i] + 1;
+                break;
+
+            case Piece::Black_King:
+                blackScore += evalKing[mirrored];
+                break;
+            case Piece::Black_Queen:
+                blackScore += evalQueen[mirrored] + 8;
+                break;
+            case Piece::Black_Bishop:
+                blackScore += evalBishop[mirrored] + 3;
+                break;
+            case Piece::Black_Knight:
+                blackScore += evalKnight[mirrored] + 3;
+                break;
+            case Piece::Black_Rook:
+                blackScore += evalRook[mirrored] + 5;
+                break;
+            case Piece::Black_Pawn:
+                blackScore += evalPawn[mirrored] + 1;
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    return whiteScore - blackScore;
+}
 
 bool Game::check_moves() { } // TODO
 
@@ -261,6 +379,8 @@ std::string Game::print_board() {
     return curr.print_board();
 }
 
-double Game::print_score() { }
+double Game::print_score() {
+    return evaluate(curr);
+}
 
 Side Game::checkmate() { } // TODO

@@ -173,7 +173,7 @@ struct Board {
 };
 
 class Game {
-    public:
+    private:
         Board curr{};
 
         std::vector<Move> bestMoves{};
