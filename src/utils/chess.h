@@ -1,11 +1,10 @@
-#include <array>
-#include <atomic>
-#include <condition_variable>
-#include <mutex>
-#include <optional>
+#ifndef CHESS_H
+#define CHESS_H
+
+#include <istream>
 #include <string>
-#include <thread>
-#include <utility>
+#include <array>
+#include <stack>
 #include <vector>
 
 #ifndef CHESS_SEARCH_THREADS
@@ -25,296 +24,203 @@
 #define WHITE_TEXT "\033[97m"
 #define BLACK_TEXT "\033[30m"
 
-// Board Evaluators, a8-h1
-inline constexpr std::array<std::array<double, 8>, 8> evalKing = {{
-    {{-1, -1, -1, -1, -1, -1, -1, -1}}, // Dont be outside the back rank
-    {{-1, -1, -1, -1, -1, -1, -1, -1}},
-    {{-1, -1, -1, -1, -1, -1, -1, -1}},
-    {{-1, -1, -1, -2, -2, -1, -1, -1}}, // I dont like the cetner
-    {{-1, -1, -1, -2, -2, -1, -1, -1}},
-    {{-1, -1, -1, -1, -1, -1, -1, -1}},
-    {{-1, -1, -1, -1, -1, -1, -1, -1}},
-    {{0, 0, 2, -1, 1, -1, 2, 0}}, // My goal is to make it so the king will only want to be where it is or castle
-}};
-inline constexpr std::array<std::array<double, 8>, 8> evalQueen = {{
-    {{2, 2, 2, 2, 2, 2, 2, 2}},
-    {{2, 2, 2, 2, 2, 2, 2, 2}},
-    {{2, 2, 2, 2, 2, 2, 2, 2}},
-    {{2, 2, 2, 2, 2, 2, 2, 2}},
-    {{2, 2, 2, 2, 2, 2, 2, 2}},
-    {{2, 2, 2, 2, 2, 2, 2, 2}},
-    {{2, 2, 2, 2, 2, 2, 2, 2}},
-    {{2, 2, 2, 2, 2, 2, 2, 2}}, // Queen is good anywhere
-}};
-inline constexpr std::array<std::array<double, 8>, 8> evalBishop = {{
-    {{2, 2, 2, 2, 2, 2, 2, 2}},
-    {{2, 1, 1, 1, 1, 1, 1, 2}},
-    {{2, 1, 0, 0, 0, 0, 1, 2}},
-    {{2, 1, 0, .5, .5, 0, 1, 2}},
-    {{2, 1, 0, .5, .5, 0, 1, 2}}, // Be towrads the edge of the board
-    {{2, 1, 0, 0, 0, 0, 1, 2}},
-    {{2, 1, 1, 1, 1, 1, 1, 2}},
-    {{2, 2, 2, 2, 2, 2, 2, 2}},
-}};
-inline constexpr std::array<std::array<double, 8>, 8> evalKnight = {{
-    {{0, 0, 0, 0, 0, 0, 0, 0}},
-    {{0, .5, .5, .5, .5, .5, .5, 0}},
-    {{0, .5, 1, 1, 1, 1, .5, 0}},
-    {{0, .5, 1, 1, 1, 1, .5, 0}},
-    {{0, .5, 1, 1, 1, 1, .5, 0}},
-    {{0, .5, 1, 1, 1, 1, .5, 0}}, // Knights can do more in the center
-    {{0, .5, .5, .5, .5, .5, .5, 0}},
-    {{0, .5, 0, 0, 0, 0, .5, 0}}, // Dont want knights to be on the edges
-}};
-inline constexpr std::array<std::array<double, 8>, 8> evalRook = {{
-    {{0, 0, 0, 0, 0, 0, 0, 0}},
-    {{0, 0, 0, 0, 0, 0, 0, 0}},
-    {{0, 0, 0, 0, 0, 0, 0, 0}},
-    {{-1, -1, -1, -1, -1, -1, -1, -1}}, // I don't like the rook in the middle
-    {{-1, -1, -1, -1, -1, -1, -1, -1}},
-    {{0, 0, 0, 0, 0, 0, 0, 0}},
-    {{0, 0, 0, 0, 0, 0, 0, 0}},
-    {{0, 0, 2, 0, 1, 0, 2, 0}}, // Put rook on the row where the king might be, based on score
-}};
-inline constexpr std::array<std::array<double, 8>, 8> evalPawn = {{
-    {{5, 5, 5, 5, 5, 5, 5, 5}}, // Prioritize getting to the end to promote
-    {{2.5, 2.75, 2.75, 2.75, 2.75, 2.75, 2.75, 2.5}},
-    {{2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5}},
-    {{2, 2.25, 2.25, 2.25, 2.25, 2.25, 2.25, 2}},
-    {{1, 1, 2, 4, 4, 2, 1, 1}}, // Center control is good
-    {{1, 1.125, 1.25, 1.25, 1.25, 1.25, 1.125, 1}}, // Disencourage being on the side of the board
-    {{1, 1, 1, 1, 1, 1, 1, 1}}, // Its ok if they stay still
-    {{0, 0, 0, 0, 0, 0, 0, 0}}, // Pawns cannot be on the last rannk
-}};
+typedef enum : int8_t{
+    Empty = 0,
+
+    White_King   = 11,
+    White_Queen  = 12,
+    White_Bishop = 13,
+    White_Knight = 14,
+    White_Rook   = 15,
+    White_Pawn   = 16,
+
+    Black_King   = 21,
+    Black_Queen  = 22,
+    Black_Bishop = 23,
+    Black_Knight = 24, 
+    Black_Rook   = 25,
+    Black_Pawn   = 26,
+} Piece;
+
+typedef enum : int8_t {
+    None = 0,
+    White = 1,
+    Black = 2,
+} Side;
 
 struct Square {
-    int file = -1; // 0-7 for a-h
-    int rank = -1; // 0-7 for 1-8
+    int file = -1; // 0-7 to a-h
+    int rank = -1; // 0-7 to 1-8
+    int real = -1; // 0-63 for a1-h8
 
     constexpr Square() = default;
-
     constexpr Square(int rank_, int file_)
-        : file(file_), rank(rank_) {}
-
-    explicit Square(const std::string& s) {
-        if (s.size() != 2) return;
-
-        char f = static_cast<char>(std::tolower(s[0]));
-        char r = s[1];
-
-        if (f < 'a' || f > 'h' || r < '1' || r > '8') return;
-
-        file = f - 'a';
-        rank = '8' - r;
-    }
-
-    std::string to_string() const {
-        if (file < 0 || file > 7 || rank < 0 || rank > 7)
-            return "-";
-
-        char f = static_cast<char>('a' + file);
-        char r = static_cast<char>('8' - rank);
-        return std::string(1, f) + r;
-    }
-
+        : file(file_), rank(rank_) {
+            real = rank_ * 8 + file_;
+        }
+    constexpr Square(int real_)
+        : real(real_) {
+            rank = real_ % 8;
+            file = (real_ - rank) >> 3;
+        }
+    explicit Square(const std::string& s) { } // TODO
+    
+    std::string to_string() const { } // TODO
     static Square from_string(const std::string& s) {
         return Square(s);
     }
-
     bool operator==(const Square& s) const {
-        return file == s.file && rank == s.rank;
+        return real == s.real;
     }
-
     bool is_valid() const {
-        return file >= 0 && file < 8 && rank >= 0 && rank < 8;
+        return real >= 0 && real < 64 && file >= 0 && file < 8 && rank >= 0 && rank < 8;
     }
 };
 
-// Squares
-inline constexpr Square A1{7, 0};
-inline constexpr Square B1{7, 1};
-inline constexpr Square C1{7, 2};
-inline constexpr Square D1{7, 3};
-inline constexpr Square E1{7, 4};
-inline constexpr Square F1{7, 5};
-inline constexpr Square G1{7, 6};
-inline constexpr Square H1{7, 7};
-
-inline constexpr Square A2{6, 0};
-inline constexpr Square B2{6, 1};
-inline constexpr Square C2{6, 2};
-inline constexpr Square D2{6, 3};
-inline constexpr Square E2{6, 4};
-inline constexpr Square F2{6, 5};
-inline constexpr Square G2{6, 6};
-inline constexpr Square H2{6, 7};
-
-inline constexpr Square A3{5, 0};
-inline constexpr Square B3{5, 1};
-inline constexpr Square C3{5, 2};
-inline constexpr Square D3{5, 3};
-inline constexpr Square E3{5, 4};
-inline constexpr Square F3{5, 5};
-inline constexpr Square G3{5, 6};
-inline constexpr Square H3{5, 7};
-
-inline constexpr Square A4{4, 0};
-inline constexpr Square B4{4, 1};
-inline constexpr Square C4{4, 2};
-inline constexpr Square D4{4, 3};
-inline constexpr Square E4{4, 4};
-inline constexpr Square F4{4, 5};
-inline constexpr Square G4{4, 6};
-inline constexpr Square H4{4, 7};
-
-inline constexpr Square A5{3, 0};
-inline constexpr Square B5{3, 1};
-inline constexpr Square C5{3, 2};
-inline constexpr Square D5{3, 3};
-inline constexpr Square E5{3, 4};
-inline constexpr Square F5{3, 5};
-inline constexpr Square G5{3, 6};
-inline constexpr Square H5{3, 7};
-
-inline constexpr Square A6{2, 0};
-inline constexpr Square B6{2, 1};
-inline constexpr Square C6{2, 2};
-inline constexpr Square D6{2, 3};
-inline constexpr Square E6{2, 4};
-inline constexpr Square F6{2, 5};
-inline constexpr Square G6{2, 6};
-inline constexpr Square H6{2, 7};
-
-inline constexpr Square A7{1, 0};
-inline constexpr Square B7{1, 1};
-inline constexpr Square C7{1, 2};
-inline constexpr Square D7{1, 3};
-inline constexpr Square E7{1, 4};
-inline constexpr Square F7{1, 5};
-inline constexpr Square G7{1, 6};
-inline constexpr Square H7{1, 7};
-
-inline constexpr Square A8{0, 0};
-inline constexpr Square B8{0, 1};
-inline constexpr Square C8{0, 2};
-inline constexpr Square D8{0, 3};
-inline constexpr Square E8{0, 4};
-inline constexpr Square F8{0, 5};
-inline constexpr Square G8{0, 6};
-inline constexpr Square H8{0, 7};
-
-enum class Side { Empty, White, Black, Draw };
-
-enum class Piece : int8_t {
-    Empty,
-
-    White_King,
-    White_Queen,
-    White_Bishop,
-    White_Knight,
-    White_Rook,
-    White_Pawn,
-
-    Black_King,
-    Black_Queen,
-    Black_Bishop,
-    Black_Knight, 
-    Black_Rook,
-    Black_Pawn,
-};
-
-char piece_to_string(Piece p);
-Piece string_to_piece(char c);
-
-// Using https://en.wikipedia.org/wiki/Universal_Chess_Interface
 struct Move {
     Square from{};
     Square to{};
     Piece promotion = Piece::Empty;
 
     constexpr Move() = default;
-
     constexpr Move(Square from_, Square to_, Piece promotion_ = Piece::Empty)
-        : from(from_), to(to_), promotion(promotion_) { }
+        : from(from_), to(to_), promotion(promotion_) {}
+    explicit Move(const std::string& m) { } // TODO
 
-    constexpr Move(int from_rank, int from_file, int to_rank, int to_file)
-        : Move(Square(from_rank, from_file), Square(to_rank, to_file), Piece::Empty) {}
-
-    constexpr Move(int from_rank, int from_file, int to_rank, int to_file, Piece promotion_)
-        : Move(Square(from_rank, from_file), Square(to_rank, to_file), promotion_) {}
-
-    Move(std::string m) {
-        if (m.length() != 4 && m.length() != 5)
-            return;
-        from = Square(m.substr(0, 2));
-        to = Square(m.substr(2, 2));
-        if (m.length() < 5)
-            return;
-        promotion = string_to_piece(m[4]);
+    std::string to_string() const { } // TODO
+    static Move from_string(const std::string& s) {
+        return Move(s);
     }
-
-    std::string to_string() const {
-        std::string ret = from.to_string() + " " + to.to_string(); 
-
-        if (promotion != Piece::Empty)
-            ret += " = " + std::string(1, piece_to_string(promotion));
-
-        return ret;
-    }
-
     bool operator==(const Move& m) const {
-        return this->from == m.from && this->to == m.to && this->promotion == m.promotion;
+        return from == m.from && to == m.to;
+    }
+    bool is_valid() const {
+        return from.is_valid() && to.is_valid();
     }
 };
 
-// [0][0] is a8, and [7][7] is h1, [rank][8 - file] (up-down)(left-right)
-using Board = std::array<std::array<Piece, 8>, 8>; // Defaults as Piece::Empty
+struct Board {
+    std::array<Piece, 64> board{
+        White_Rook, White_Knight, White_Bishop, White_Queen, White_King, White_Bishop, White_Knight, White_Rook,
+        White_Pawn, White_Pawn, White_Pawn, White_Pawn, White_Pawn, White_Pawn, White_Pawn, White_Pawn, 
+        Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 
+        Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 
+        Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 
+        Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 
+        Black_Pawn, Black_Pawn, Black_Pawn, Black_Pawn, Black_Pawn, Black_Pawn, Black_Pawn, Black_Pawn, 
+        Black_Rook, Black_Knight, Black_Bishop, Black_Queen, Black_King, Black_Bishop, Black_Knight, Black_Rook,
+    };
 
-struct CastlingRights {
-    CastlingRights() = default;
-    CastlingRights(bool wk, bool wq, bool bk, bool bq)
-        : whiteKingSide(wk), whiteQueenSide(wq), blackKingSide(bk), blackQueenSide(bq) {}
-    bool whiteKingSide  = false;
-    bool whiteQueenSide = false;
-    bool blackKingSide  = false;
-    bool blackQueenSide = false;
-};
+    bool whiteKingSide  = true;
+    bool whiteQueenSide = true;
+    bool blackKingSide  = true;
+    bool blackQueenSide = true;
 
-struct PositionState {
-    PositionState() = default;
-    PositionState(Side tm, Square ep, CastlingRights cr)
-        : toMove(tm), enPassant(ep), castle(cr) {}
-    PositionState(Side tm, Square ep, CastlingRights cr, int hm, int fm)
-        : toMove(tm), enPassant(ep), castle(cr), halfMove(hm), fullMove(fm) {}
-    Side toMove = Side::Empty;
-    Square enPassant;
-    CastlingRights castle;
+    Side toMove = White;
+    Square enPassant{};
+
     int halfMove = 0;
     int fullMove = 1;
+
+    std::vector<Move> moves{};
+
+    constexpr Board() = default; // TODO: Update? Might not work good because this is the copy
+
+    void children();
+    static Board update(const Board& b, const Move& m);
+    std::string get_board_state();
+    void give_board_state(std::string notation);
+    std::string print_moves();
+    std::string print_board();
 };
 
-// This will take https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
+inline constexpr Square A1{0};
+inline constexpr Square A2{1};
+inline constexpr Square A3{2};
+inline constexpr Square A4{3};
+inline constexpr Square A5{4};
+inline constexpr Square A6{5};
+inline constexpr Square A7{6};
+inline constexpr Square A8{7};
+
+inline constexpr Square B1{8};
+inline constexpr Square B2{9};
+inline constexpr Square B3{10};
+inline constexpr Square B4{11};
+inline constexpr Square B5{12};
+inline constexpr Square B6{13};
+inline constexpr Square B7{14};
+inline constexpr Square B8{15};
+
+inline constexpr Square C1{16};
+inline constexpr Square C2{17};
+inline constexpr Square C3{18};
+inline constexpr Square C4{19};
+inline constexpr Square C5{20};
+inline constexpr Square C6{21};
+inline constexpr Square C7{22};
+inline constexpr Square C8{23};
+
+inline constexpr Square D1{24};
+inline constexpr Square D2{25};
+inline constexpr Square D3{26};
+inline constexpr Square D4{27};
+inline constexpr Square D5{28};
+inline constexpr Square D6{29};
+inline constexpr Square D7{30};
+inline constexpr Square D8{31};
+
+inline constexpr Square E1{32};
+inline constexpr Square E2{33};
+inline constexpr Square E3{34};
+inline constexpr Square E4{35};
+inline constexpr Square E5{36};
+inline constexpr Square E6{37};
+inline constexpr Square E7{38};
+inline constexpr Square E8{39};
+
+inline constexpr Square F1{40};
+inline constexpr Square F2{41};
+inline constexpr Square F3{42};
+inline constexpr Square F4{43};
+inline constexpr Square F5{44};
+inline constexpr Square F6{45};
+inline constexpr Square F7{46};
+inline constexpr Square F8{47};
+
+inline constexpr Square G1{48};
+inline constexpr Square G2{49};
+inline constexpr Square G3{50};
+inline constexpr Square G4{51};
+inline constexpr Square G5{52};
+inline constexpr Square G6{53};
+inline constexpr Square G7{54};
+inline constexpr Square G8{55};
+
+inline constexpr Square H1{56};
+inline constexpr Square H2{57};
+inline constexpr Square H3{58};
+inline constexpr Square H4{59};
+inline constexpr Square H5{60};
+inline constexpr Square H6{61};
+inline constexpr Square H7{62};
+inline constexpr Square H8{63};
+
 class Game {
-    private:
-        // Board and related state
-        Board board{};
-        PositionState state;
+    public:
+        Board curr{};
 
-        std::vector<Move> bestMoves;
-        std::vector<Move> completed;
-        std::vector<Move> moves; // Legal move list
+        std::vector<Move> bestMoves{};
+        std::vector<Move> completed{};
 
-        static std::optional<std::pair<Board, PositionState>> update_board(const Board& board, const PositionState& state, const Move& move, const std::vector<Move>& moves);
-        static double evaluate(const Board& board, const PositionState& state);
+        static double evaluate(const Board& board);
         bool check_moves(); // Clear and recalculate valid moves
-        static std::vector<Move> children(const Board& board, const PositionState& st); // Find all children moves of current position
         static Side side_of_piece(Piece p); // Checks if the current piece is part of the current player.
 
-        static double alphabeta(const Board& node, const PositionState& state, int depth, double alpha, double beta, bool maxPlayer, std::vector<Move>& pv);
+        static double alphabeta(const Board& node, int depth, double alpha, double beta, bool maxPlayer, std::vector<Move>& pv);
     public:
-        // Required notation
-        Game();
-        Game(std::string notation);
+        constexpr Game() = default; // TODO
+        Game(std::string notation); // TODO
 
         std::string get_board_state(); // Creates and returns the board state in Forsyth-Edwards Notation
         void give_board_state(std::string state); // Returns a new game board from the state provided
@@ -329,3 +235,5 @@ class Game {
         double print_score(); // Prints the score of the current board
         Side checkmate(); // Returns the winning side if possible
 };
+
+#endif // CHESS_H

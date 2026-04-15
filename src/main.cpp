@@ -142,7 +142,7 @@ void perform_action(const Action& action, Game& game) {
                                 }
         case Action::LOOP: {
                                std::cout << "Game will run in a loop until a draw or winning position, ^C to end." << std::endl;
-                               while (game.checkmate() == Side::Empty) {
+                               while (game.checkmate() == None) {
                                    get_move();
                                    std::cout << "The current score is: " << game.print_score() << "\n";
                                }
