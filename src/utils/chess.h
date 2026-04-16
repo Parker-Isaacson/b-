@@ -43,9 +43,10 @@ typedef enum : int8_t{
 } Piece;
 
 typedef enum : int8_t {
-    None = 0,
+    None  = 0,
     White = 1,
     Black = 2,
+    Draw  = 3,
 } Side;
 
 char piece_to_string(Piece p);
@@ -160,12 +161,20 @@ struct Board {
     int halfMove = 0;
     int fullMove = 1;
 
-    std::vector<Move> moves{};
+    std::vector<Move> moves;
+    double score;
 
-    constexpr Board() = default; // TODO: Update? Might not work good because this is the copy
+    // constexpr Board() = default; // TODO: Update? Might not work good because this is the copy
+    Board() {
+        children(); // Get the children of this board
+        evaluate(); // Get the score of this board
+    }
 
     void children();
     static Board update(const Board& b, const Move& m);
+    double evaluate();
+    Side checkmate();
+
     std::string get_board_state();
     void give_board_state(std::string notation);
     std::string print_moves();
@@ -179,7 +188,6 @@ class Game {
         std::vector<Move> bestMoves{};
         std::vector<Move> completed{};
 
-        static double evaluate(const Board& board);
         bool check_moves(); // Clear and recalculate valid moves
         static Side side_of_piece(Piece p); // Checks if the current piece is part of the current player.
 
