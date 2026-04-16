@@ -180,6 +180,11 @@ Side Board::checkmate() {
     return None;
 }
 
+void Board::check_moves() {
+    children();
+    evaluate();
+}
+
 std::string Board::get_board_state() {
     std::string notation = "";
     
@@ -353,7 +358,9 @@ Game::Game(std::string notation) {
     give_board_state(notation);
 }
 
-bool Game::check_moves() { } // TODO
+void Game::check_moves() {
+    return curr.check_moves();
+}
 
 Side Game::side_of_piece(Piece p) {
     return static_cast<Side>((int)(p / 10));
@@ -371,7 +378,15 @@ void Game::give_board_state(std::string state) {
 
 Move Game::get_move() { } // TODO
 
-bool Game::give_move(Move move) { } // TODO
+bool Game::give_move(Move move) {
+    if (checkmate() != None)
+        return false;
+
+    curr = Board::update(curr, move);
+    completed.push_back(move);
+    check_moves();
+    return true;
+}
 
 bool Game::give_move(Square from, Square to, Piece promo) {
     give_move(Move(from, to, promo));

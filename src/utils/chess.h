@@ -174,6 +174,7 @@ struct Board {
     static Board update(const Board& b, const Move& m);
     double evaluate();
     Side checkmate();
+    void check_moves();
 
     std::string get_board_state();
     void give_board_state(std::string notation);
@@ -188,7 +189,7 @@ class Game {
         std::vector<Move> bestMoves{};
         std::vector<Move> completed{};
 
-        bool check_moves(); // Clear and recalculate valid moves
+        void check_moves(); // Clear and recalculate valid moves
         static Side side_of_piece(Piece p); // Checks if the current piece is part of the current player.
 
         static double alphabeta(const Board& node, int depth, double alpha, double beta, bool maxPlayer, std::vector<Move>& pv);
