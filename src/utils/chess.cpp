@@ -52,71 +52,71 @@ void Board::children() { } // TODO
 
 Board Board::update(const Board& b, const Move& m) { } // TODO
 
-double Board::evaluate() {
+double Board::evaluate() const {
     constexpr std::array<double, 64> evalKing = {{
         -1, -1, -1, -1, -1, -1, -1, -1,
-        -1, -1, -1, -1, -1, -1, -1, -1,
-        -1, -1, -1, -1, -1, -1, -1, -1,
-        -1, -1, -1, -2, -2, -1, -1, -1,
-        -1, -1, -1, -2, -2, -1, -1, -1,
-        -1, -1, -1, -1, -1, -1, -1, -1,
-        -1, -1, -1, -1, -1, -1, -1, -1,
-         0,  0,  2, -1,  1, -1,  2,  0
+            -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -2, -2, -1, -1, -1,
+            -1, -1, -1, -2, -2, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1,
+            0,  0,  2, -1,  1, -1,  2,  0
     }};
 
     constexpr std::array<double, 64> evalQueen = {{
         2, 2, 2, 2, 2, 2, 2, 2,
-        2, 2, 2, 2, 2, 2, 2, 2,
-        2, 2, 2, 2, 2, 2, 2, 2,
-        2, 2, 2, 2, 2, 2, 2, 2,
-        2, 2, 2, 2, 2, 2, 2, 2,
-        2, 2, 2, 2, 2, 2, 2, 2,
-        2, 2, 2, 2, 2, 2, 2, 2,
-        2, 2, 2, 2, 2, 2, 2, 2
+            2, 2, 2, 2, 2, 2, 2, 2,
+            2, 2, 2, 2, 2, 2, 2, 2,
+            2, 2, 2, 2, 2, 2, 2, 2,
+            2, 2, 2, 2, 2, 2, 2, 2,
+            2, 2, 2, 2, 2, 2, 2, 2,
+            2, 2, 2, 2, 2, 2, 2, 2,
+            2, 2, 2, 2, 2, 2, 2, 2
     }};
 
     constexpr std::array<double, 64> evalBishop = {{
         2, 2, 2, 2, 2, 2, 2, 2,
-        2, 1, 1, 1, 1, 1, 1, 2,
-        2, 1, 0, 0, 0, 0, 1, 2,
-        2, 1, 0, .5, .5, 0, 1, 2,
-        2, 1, 0, .5, .5, 0, 1, 2,
-        2, 1, 0, 0, 0, 0, 1, 2,
-        2, 1, 1, 1, 1, 1, 1, 2,
-        2, 2, 2, 2, 2, 2, 2, 2
+            2, 1, 1, 1, 1, 1, 1, 2,
+            2, 1, 0, 0, 0, 0, 1, 2,
+            2, 1, 0, .5, .5, 0, 1, 2,
+            2, 1, 0, .5, .5, 0, 1, 2,
+            2, 1, 0, 0, 0, 0, 1, 2,
+            2, 1, 1, 1, 1, 1, 1, 2,
+            2, 2, 2, 2, 2, 2, 2, 2
     }};
 
     constexpr std::array<double, 64> evalKnight = {{
         0, 0, 0, 0, 0, 0, 0, 0,
-        0, .5, .5, .5, .5, .5, .5, 0,
-        0, .5, 1, 1, 1, 1, .5, 0,
-        0, .5, 1, 1, 1, 1, .5, 0,
-        0, .5, 1, 1, 1, 1, .5, 0,
-        0, .5, 1, 1, 1, 1, .5, 0,
-        0, .5, .5, .5, .5, .5, .5, 0,
-        0, .5, 0, 0, 0, 0, .5, 0
+            0, .5, .5, .5, .5, .5, .5, 0,
+            0, .5, 1, 1, 1, 1, .5, 0,
+            0, .5, 1, 1, 1, 1, .5, 0,
+            0, .5, 1, 1, 1, 1, .5, 0,
+            0, .5, 1, 1, 1, 1, .5, 0,
+            0, .5, .5, .5, .5, .5, .5, 0,
+            0, .5, 0, 0, 0, 0, .5, 0
     }};
 
     constexpr std::array<double, 64> evalRook = {{
-         0,  0,  0,  0,  0,  0,  0,  0,
-         0,  0,  0,  0,  0,  0,  0,  0,
-         0,  0,  0,  0,  0,  0,  0,  0,
-        -1, -1, -1, -1, -1, -1, -1, -1,
-        -1, -1, -1, -1, -1, -1, -1, -1,
-         0,  0,  0,  0,  0,  0,  0,  0,
-         0,  0,  0,  0,  0,  0,  0,  0,
-         0,  0,  2,  0,  1,  0,  2,  0
+        0,  0,  0,  0,  0,  0,  0,  0,
+            0,  0,  0,  0,  0,  0,  0,  0,
+            0,  0,  0,  0,  0,  0,  0,  0,
+            -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1,
+            0,  0,  0,  0,  0,  0,  0,  0,
+            0,  0,  0,  0,  0,  0,  0,  0,
+            0,  0,  2,  0,  1,  0,  2,  0
     }};
 
     constexpr std::array<double, 64> evalPawn = {{
         5,    5,    5,    5,    5,    5,    5,    5,
-        2.5,  2.75, 2.75, 2.75, 2.75, 2.75, 2.75, 2.5,
-        2.5,  2.5,  2.5,  2.5,  2.5,  2.5,  2.5,  2.5,
-        2,    2.25, 2.25, 2.25, 2.25, 2.25, 2.25, 2,
-        1,    1,    2,    4,    4,    2,    1,    1,
-        1,    1.125,1.25, 1.25, 1.25, 1.25, 1.125,1,
-        1,    1,    1,    1,    1,    1,    1,    1,
-        0,    0,    0,    0,    0,    0,    0,    0
+            2.5,  2.75, 2.75, 2.75, 2.75, 2.75, 2.75, 2.5,
+            2.5,  2.5,  2.5,  2.5,  2.5,  2.5,  2.5,  2.5,
+            2,    2.25, 2.25, 2.25, 2.25, 2.25, 2.25, 2,
+            1,    1,    2,    4,    4,    2,    1,    1,
+            1,    1.125,1.25, 1.25, 1.25, 1.25, 1.125,1,
+            1,    1,    1,    1,    1,    1,    1,    1,
+            0,    0,    0,    0,    0,    0,    0,    0
     }};
 
     double whiteScore = 0.0;
@@ -187,7 +187,7 @@ void Board::check_moves() {
 
 std::string Board::get_board_state() {
     std::string notation = "";
-    
+
     int count = 0;
     for (int i = 63; i >= 0; i--) {
         char m = piece_to_string(board[i]);
@@ -366,7 +366,46 @@ Side Game::side_of_piece(Piece p) {
     return static_cast<Side>((int)(p / 10));
 }
 
-double Game::alphabeta(const Board& node, int depth, double alpha, double beta, bool maxPlayer, std::vector<Move>& pv) { } // TODO
+double Game::alphabeta(const Board& node, int depth, double alpha, double beta, bool maxPlayer, std::vector<Move>& pv) { // TODO: Test
+    if (depth == 0 || node.moves.empty()) {
+        pv.clear();
+        return node.evaluate();
+    }
+
+    double bestScore = maxPlayer ? MIN_SCORE : MAX_SCORE;
+    std::vector<Move> bestLine;
+
+    for (const Move& mx : node.moves) {
+        Board next = Board::update(node, mx);
+
+        std::vector<Move> childLine;
+
+        double score = alphabeta(next, depth - 1, alpha, beta, !maxPlayer, childLine);
+
+        bool better = maxPlayer ? (score > bestScore) : (score < bestScore);
+        if (better) {
+            bestScore = score;
+            bestLine.clear();
+            bestLine.push_back(mx);
+            bestLine.insert(bestLine.end(), childLine.begin(), childLine.end());
+        }
+
+        if (maxPlayer) {
+            alpha = std::max(alpha, bestScore);
+            if (alpha >= beta) {
+                break;
+            }
+        } else {
+            beta = std::min(beta, bestScore);
+            if (beta <= alpha) {
+                break;
+            }
+        }
+    }
+
+    pv = std::move(bestLine);
+    return bestScore;
+}
 
 std::string Game::get_board_state() {
     return curr.get_board_state();

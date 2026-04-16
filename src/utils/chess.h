@@ -81,7 +81,7 @@ struct Square {
 
         real = rank * 8 + file;
     }
-    
+
     std::string to_string() const {
         if (file < 0 || file > 7 || rank < 0 || rank > 7)
             return "-";
@@ -141,13 +141,13 @@ struct Move {
 struct Board {
     std::array<Piece, 64> board{
         White_Rook, White_Knight, White_Bishop, White_Queen, White_King, White_Bishop, White_Knight, White_Rook,
-        White_Pawn, White_Pawn, White_Pawn, White_Pawn, White_Pawn, White_Pawn, White_Pawn, White_Pawn, 
-        Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 
-        Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 
-        Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 
-        Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 
-        Black_Pawn, Black_Pawn, Black_Pawn, Black_Pawn, Black_Pawn, Black_Pawn, Black_Pawn, Black_Pawn, 
-        Black_Rook, Black_Knight, Black_Bishop, Black_Queen, Black_King, Black_Bishop, Black_Knight, Black_Rook,
+            White_Pawn, White_Pawn, White_Pawn, White_Pawn, White_Pawn, White_Pawn, White_Pawn, White_Pawn, 
+            Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 
+            Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 
+            Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 
+            Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 
+            Black_Pawn, Black_Pawn, Black_Pawn, Black_Pawn, Black_Pawn, Black_Pawn, Black_Pawn, Black_Pawn, 
+            Black_Rook, Black_Knight, Black_Bishop, Black_Queen, Black_King, Black_Bishop, Black_Knight, Black_Rook,
     };
 
     bool whiteKingSide  = true;
@@ -172,7 +172,7 @@ struct Board {
 
     void children();
     static Board update(const Board& b, const Move& m);
-    double evaluate();
+    double evaluate() const;
     Side checkmate();
     void check_moves();
 
