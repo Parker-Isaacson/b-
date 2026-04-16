@@ -155,7 +155,7 @@ struct Board {
     bool blackKingSide  = true;
     bool blackQueenSide = true;
 
-    Side toMove = White;
+    Side toMove = None;
     Square enPassant{};
 
     int halfMove = 0;

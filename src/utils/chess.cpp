@@ -377,7 +377,29 @@ bool Game::give_move(Square from, Square to, Piece promo) {
     give_move(Move(from, to, promo));
 }
 
-std::string Game::end_game() { } // TODO
+std::string Game::end_game() {
+    std::string ret;
+
+    Side winner = checkmate();
+    switch (winner) {
+        case White:
+            ret += "White Wins!\n";
+            break;
+        case Black:
+            ret += "Black Wins!\n";
+            break;
+        case Draw:
+            ret += "Game Drawn!\n";
+            break;
+        default:
+            ret += "No Winner.\n";
+            break;
+    }
+
+    ret += print_moves() + "\n";
+
+    return ret;
+}
 
 std::string Game::print_moves() {
     return curr.print_moves();

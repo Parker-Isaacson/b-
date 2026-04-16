@@ -34,9 +34,8 @@ void perform_action(const Action& action, Game& game);
 
 int main(int argc, char** argv) {
     /* -- Debug Section -- */
-    Game gx("rnb2b1r/p1qpkp1p/1pQ2np1/2p1p3/1P1P2P1/4P3/P1PB1P1P/RN2KBNR w KQ - 1 8");
-    std::cout << gx.print_board() << std::endl;
-    std::cout << gx.print_score() << std::endl;
+    Game gx("rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3");
+    std::cout << gx.end_game() << std::endl;
 
     std::cout << "Done" << std::endl;
     return 0;
