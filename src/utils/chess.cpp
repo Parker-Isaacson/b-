@@ -48,8 +48,9 @@ Piece string_to_piece(char c) {
     }
 }
 
-void Board::children() { // TODO: Test
+std::vector<Move> Board::children() { // TODO: Test
     std::vector<Move> pseudo;
+    std::vector<Move> res;
     pseudo.reserve(218); // https://www.chessprogramming.org/Chess_Position
 
     auto in_bounds = [](int r, int f) {
@@ -71,7 +72,7 @@ void Board::children() { // TODO: Test
         if (!in_bounds(tr, tf)) return;
         Piece target = board[tr * 8 + tf];
         if (Game::side_of_piece(target) == toMove) return;
-        pseudo.emplace_back(fr, ff, tr, tf);
+        pseudo.emplace_back(Move(fr, ff, tr, tf));
     };
 
     auto pin_ray = [&](int fr, int ff, int dr, int df) {
@@ -82,12 +83,12 @@ void Board::children() { // TODO: Test
 
             Piece target = board[tr * 8 + tf];
             if (target == Empty) {
-                pseudo.emplace_back(fr, ff, tr, tf);
+                pseudo.emplace_back(Move(fr, ff, tr, tf));
                 continue;
             }
 
             if (Game::side_of_piece(target) != toMove) {
-                pseudo.emplace_back(fr, ff, tr, tf);
+                pseudo.emplace_back(Move(fr, ff, tr, tf));
             }
             break;
         }
@@ -233,18 +234,18 @@ void Board::children() { // TODO: Test
                 auto add_pawn_move = [&](int fr, int ff, int tr, int tf) {
                     if (tr == promo_rank) {
                         if (toMove == White) {
-                            pseudo.emplace_back(fr, ff, tr, tf, White_Queen);
-                            pseudo.emplace_back(fr, ff, tr, tf, White_Rook);
-                            pseudo.emplace_back(fr, ff, tr, tf, White_Bishop);
-                            pseudo.emplace_back(fr, ff, tr, tf, White_Knight);
+                            pseudo.emplace_back(Move(fr, ff, tr, tf, White_Queen));
+                            pseudo.emplace_back(Move(fr, ff, tr, tf, White_Rook));
+                            pseudo.emplace_back(Move(fr, ff, tr, tf, White_Bishop));
+                            pseudo.emplace_back(Move(fr, ff, tr, tf, White_Knight));
                         } else {
-                            pseudo.emplace_back(fr, ff, tr, tf, Black_Queen);
-                            pseudo.emplace_back(fr, ff, tr, tf, Black_Rook);
-                            pseudo.emplace_back(fr, ff, tr, tf, Black_Bishop);
-                            pseudo.emplace_back(fr, ff, tr, tf, Black_Knight);
+                            pseudo.emplace_back(Move(fr, ff, tr, tf, Black_Queen));
+                            pseudo.emplace_back(Move(fr, ff, tr, tf, Black_Rook));
+                            pseudo.emplace_back(Move(fr, ff, tr, tf, Black_Bishop));
+                            pseudo.emplace_back(Move(fr, ff, tr, tf, Black_Knight));
                         }
                     } else {
-                        pseudo.emplace_back(fr, ff, tr, tf);
+                        pseudo.emplace_back(Move(fr, ff, tr, tf));
                     }
                 };
 
@@ -254,7 +255,7 @@ void Board::children() { // TODO: Test
 
                     int r2 = r + 2 * dir;
                     if (r == start_rank && in_bounds(r2, f) && board[r2 * 8 + f] == Empty) {
-                        pseudo.emplace_back(r, f, r2, f);
+                        pseudo.emplace_back(Move(r, f, r2, f));
                     }
                 }
 
@@ -267,7 +268,7 @@ void Board::children() { // TODO: Test
                     if (is_enemy(target)) add_pawn_move(r, f, tr, tf);
 
                     if (enPassant.rank != -1 && enPassant.file != -1 && enPassant.rank == tr && enPassant.file == tf) {
-                        pseudo.emplace_back(r, f, tr, tf);
+                        pseudo.emplace_back(Move(r, f, tr, tf));
                     }
                 }
 
@@ -305,7 +306,7 @@ void Board::children() { // TODO: Test
                             !attacked_by_board(board, opp, 7, 4) &&
                             !attacked_by_board(board, opp, 7, 5) &&
                             !attacked_by_board(board, opp, 7, 6)) {
-                        pseudo.emplace_back(7, 4, 7, 6);
+                        pseudo.emplace_back(Move(7, 4, 7, 6));
                     }
                     if (whiteQueenSide &&
                             board[7 * 8 + 0] == White_Rook &&
@@ -313,7 +314,7 @@ void Board::children() { // TODO: Test
                             !attacked_by_board(board, opp, 7, 4) &&
                             !attacked_by_board(board, opp, 7, 3) &&
                             !attacked_by_board(board, opp, 7, 2)) {
-                        pseudo.emplace_back(7, 4, 7, 2);
+                        pseudo.emplace_back(Move(7, 4, 7, 2));
                     }
                 }
 
@@ -324,7 +325,7 @@ void Board::children() { // TODO: Test
                             !attacked_by_board(board, opp, 0, 4) &&
                             !attacked_by_board(board, opp, 0, 5) &&
                             !attacked_by_board(board, opp, 0, 6)) {
-                        pseudo.emplace_back(0, 4, 0, 6);
+                        pseudo.emplace_back(Move(0, 4, 0, 6));
                     }
                     if (blackQueenSide &&
                             board[0 * 8 + 0] == Black_Rook &&
@@ -332,7 +333,7 @@ void Board::children() { // TODO: Test
                             !attacked_by_board(board, opp, 0, 4) &&
                             !attacked_by_board(board, opp, 0, 3) &&
                             !attacked_by_board(board, opp, 0, 2)) {
-                        pseudo.emplace_back(0, 4, 0, 2);
+                        pseudo.emplace_back(Move(0, 4, 0, 2));
                     }
                 }
 
@@ -348,14 +349,10 @@ void Board::children() { // TODO: Test
     Side opp = opponent(toMove);
 
     int kr = -1, kf = -1;
-    if (!find_king(toMove, kr, kf)) {
-        moves = pseudo;
-        return;
-    }
+    if (!find_king(toMove, kr, kf))
+        return pseudo;
 
-    moves.clear();
-
-    moves.reserve(pseudo.size());
+    res.reserve(pseudo.size());
     
     for (const Move& m : pseudo) {
         std::array<Piece, 64> b = board;
@@ -365,7 +362,7 @@ void Board::children() { // TODO: Test
         int tkf = kf;
 
         Piece moving = board[m.from.rank * 8 + m.from.file];
-        if (moving == Piece::White_King || moving == Piece::Black_King) {
+        if (moving == White_King || moving == Black_King) {
             tkr = m.to.rank;
             tkf = m.to.file;
         }
@@ -373,8 +370,11 @@ void Board::children() { // TODO: Test
         if (attacked_by_board(b, opp, tkr, tkf))
             continue;
 
-        moves.push_back(m);
+        res.push_back(m);
     }
+
+    std::cout << "Children!" << res.size() << "\t" << pseudo.size() << std::endl;
+    return res;
 }
 
 std::optional<Board> Board::update(const Board& b, const Move& move) { // TODO: Test
@@ -611,6 +611,8 @@ double Board::evaluate() const {
                 break;
         }
     }
+
+    std::cout << whiteScore << "\t" << blackScore << std::endl;
 
     return whiteScore - blackScore;
 }

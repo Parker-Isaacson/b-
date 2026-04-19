@@ -33,13 +33,10 @@ Action get_action();
 void perform_action(const Action& action, Game& game);
 
 int main(int argc, char** argv) {
-    /* -- Debug Section -- */
-    Game gx("rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3");
-    std::cout << gx.end_game() << std::endl;
+    Board bx;
+    std::cout << bx.print_moves() << std::endl;
+    return 1;
 
-    std::cout << "Done" << std::endl;
-    return 0;
-    /* -- Debug Section -- */
     if (argc > 1) {
         if (strcmp(argv[1], "--test") == 0) {
             Game g(DEFAULT_BOARD);

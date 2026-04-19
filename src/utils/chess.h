@@ -169,10 +169,11 @@ struct Board {
 
     // constexpr Board() = default; // TODO: Update? Might not work good because this is the copy
     Board() {
-        children(); // Get the children of this board
-        evaluate(); // Get the score of this board
+        moves = children(); // Get the children of this board
+        score = evaluate(); // Get the score of this board
     }
-    Board(const Board &obj) {
+
+    /*Board(const Board &obj) {
         board = obj.board;
         whiteKingSide = obj.whiteKingSide;
         whiteQueenSide = obj.whiteQueenSide;
@@ -184,10 +185,10 @@ struct Board {
         fullMove = obj.fullMove;
         moves = obj.moves;
         score = obj.score;
-    }
+    }*/
 
-    void children();
     static std::optional<Board> update(const Board& b, const Move& move);
+    static std::vector<Move> children();
     double evaluate() const;
     Side checkmate();
     void check_moves();
