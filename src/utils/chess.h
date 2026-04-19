@@ -109,6 +109,8 @@ struct Move {
     constexpr Move() = default;
     constexpr Move(Square from_, Square to_, Piece promotion_ = Piece::Empty)
         : from(from_), to(to_), promotion(promotion_) {}
+    constexpr Move(int fr, int ff, int tr, int tf, Piece promotion_ = Piece::Empty)
+        : from(Square(fr, ff)), to(Square(tr, tf)), promotion(promotion_) {}
     explicit Move(const std::string& m) {
         if (m.length() != 4 && m.length() != 5)
             return;
@@ -190,9 +192,9 @@ class Game {
         std::vector<Move> completed{};
 
         void check_moves(); // Clear and recalculate valid moves
-        static Side side_of_piece(Piece p); // Checks if the current piece is part of the current player.
 
         static double alphabeta(const Board& node, int depth, double alpha, double beta, bool maxPlayer, std::vector<Move>& pv);
+
     public:
         constexpr Game() = default; // TODO
         Game(std::string notation);
@@ -209,6 +211,7 @@ class Game {
         std::string print_board(); // Print the board as nicely as possible!
         double print_score(); // Prints the score of the current board
         Side checkmate(); // Returns the winning side if possible
+        static Side side_of_piece(Piece p); // Checks if the current piece is part of the current player.
 };
 
 // Inline squares
