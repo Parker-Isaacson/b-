@@ -6,6 +6,7 @@
 #include <array>
 #include <stack>
 #include <vector>
+#include <optional>
 
 #ifndef CHESS_SEARCH_THREADS
 #define CHESS_SEARCH_THREADS 24
@@ -173,7 +174,7 @@ struct Board {
     }
 
     void children();
-    static Board update(const Board& b, const Move& m);
+    static std::optional<Board> update(const Board& b, const Move& m);
     double evaluate() const;
     Side checkmate();
     void check_moves();

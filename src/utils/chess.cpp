@@ -377,7 +377,7 @@ void Board::children() { // TODO: Test
     }
 }
 
-Board Board::update(const Board& b, const Move& m) { } // TODO
+std::optional<Board> Board::update(const Board& b, const Move& m) { } // TODO
 
 double Board::evaluate() const {
     constexpr std::array<double, 64> evalKing = {{
@@ -703,11 +703,14 @@ double Game::alphabeta(const Board& node, int depth, double alpha, double beta, 
     std::vector<Move> bestLine;
 
     for (const Move& mx : node.moves) {
-        Board next = Board::update(node, mx);
+        auto next = Board::update(node, mx);
+        if (!next)
+            continue;
 
+        Board b = *next;
         std::vector<Move> childLine;
 
-        double score = alphabeta(next, depth - 1, alpha, beta, !maxPlayer, childLine);
+        double score = alphabeta(b, depth - 1, alpha, beta, !maxPlayer, childLine);
 
         bool better = maxPlayer ? (score > bestScore) : (score < bestScore);
         if (better) {
@@ -756,7 +759,7 @@ bool Game::give_move(Move move) {
     if (checkmate() != None)
         return false;
 
-    curr = Board::update(curr, move);
+    curr = *Board::update(curr, move);
     completed.push_back(move);
     check_moves();
     return true;
