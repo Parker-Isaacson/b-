@@ -377,7 +377,123 @@ void Board::children() { // TODO: Test
     }
 }
 
-std::optional<Board> Board::update(const Board& b, const Move& m) { } // TODO
+std::optional<Board> Board::update(const Board& b, const Move& move) { // TODO: Test
+    for (const Move& m : b.moves) {
+        bool same_squares = (move.from == m.from && move.to == m.to);
+        bool promo_ok =
+            (move.promotion == m.promotion) ||
+            (move.promotion == Empty && m.promotion != Empty);
+
+        if (!same_squares || !promo_ok) {
+            continue;
+        }
+
+        Board board = b;
+
+        Move chosen = m;
+        if (move.promotion != Empty) {
+            chosen.promotion = move.promotion;
+        }
+
+        Piece moving = board.board[chosen.from.rank * 8 + chosen.from.file];
+        Piece captured = board.board[chosen.to.rank * 8 + chosen.to.file];
+
+        Square old_ep = board.enPassant;
+
+        if (moving == White_Pawn || moving == Black_Pawn || captured != Empty) {
+            board.halfMove = 0;
+        } else {
+            ++board.halfMove;
+        }
+
+        board.board[chosen.to.rank * 8 + chosen.to.file] = moving;
+        board.board[chosen.from.rank * 8 + chosen.from.file] = Empty;
+
+        // en passant capture
+        if ((moving == White_Pawn || moving == Black_Pawn) &&
+                captured == Empty &&
+                old_ep.rank != -1 && old_ep.file != -1 &&
+                chosen.to == old_ep &&
+                std::abs(chosen.to.file - chosen.from.file) == 1) {
+            int cap_rank = (moving == White_Pawn)
+                ? (chosen.to.rank + 1)
+                : (chosen.to.rank - 1);
+
+            if (cap_rank >= 0 && cap_rank < 8) {
+                board.board[cap_rank * 8 + chosen.to.file] = Empty;
+            }
+        }
+
+        board.enPassant = Square();
+
+        if (moving == White_Pawn && chosen.from.rank == 6 && chosen.to.rank == 4) {
+            board.enPassant = Square(5, chosen.from.file);
+        } else if (moving == Black_Pawn && chosen.from.rank == 1 && chosen.to.rank == 3) {
+            board.enPassant = Square(2, chosen.from.file);
+        }
+
+        // castling rook move
+        if ((moving == White_King || moving == Black_King) &&
+                chosen.from.rank == chosen.to.rank &&
+                std::abs(chosen.to.file - chosen.from.file) == 2) {
+            int rank = chosen.from.rank;
+            if (chosen.to.file == 6) {
+                Piece rook = board.board[rank * 8 + 7];
+                board.board[rank * 8 + 5] = rook;
+                board.board[rank * 8 + 7] = Piece::Empty;
+            } else if (chosen.to.file == 2) {
+                Piece rook = board.board[rank * 8 + 0];
+                board.board[rank * 8 + 3] = rook;
+                board.board[rank * 8 + 0] = Piece::Empty;
+            }
+        }
+
+        // promotion
+        if (moving == White_Pawn && chosen.to.rank == 0) {
+            Piece promo = chosen.promotion;
+            if (promo == Empty) promo = White_Queen;
+            if (Game::side_of_piece(promo) != White) promo = White_Queen;
+            board.board[chosen.to.rank * 8 + chosen.to.file] = promo;
+        } else if (moving == Black_Pawn && chosen.to.rank == 7) {
+            Piece promo = chosen.promotion;
+            if (promo == Empty) promo = Black_Queen;
+            if (Game::side_of_piece(promo) != Black) promo = Black_Queen;
+            board.board[chosen.to.rank * 8 + chosen.to.file] = promo;
+        }
+
+        // castling rights
+        if (moving == White_King) {
+            board.whiteKingSide = false;
+            board.whiteQueenSide = false;
+        } else if (moving == Black_King) {
+            board.blackKingSide = false;
+            board.blackQueenSide = false;
+        } else if (moving == White_Rook) {
+            if (chosen.from.rank == 7 && chosen.from.file == 0) board.whiteQueenSide = false;
+            if (chosen.from.rank == 7 && chosen.from.file == 7) board.whiteKingSide = false;
+        } else if (moving == Black_Rook) {
+            if (chosen.from.rank == 0 && chosen.from.file == 0) board.blackQueenSide = false;
+            if (chosen.from.rank == 0 && chosen.from.file == 7) board.blackKingSide = false;
+        }
+
+        if (captured == White_Rook) {
+            if (chosen.to.rank == 7 && chosen.to.file == 0) board.whiteQueenSide = false;
+            if (chosen.to.rank == 7 && chosen.to.file == 7) board.whiteKingSide = false;
+        } else if (captured == Black_Rook) {
+            if (chosen.to.rank == 0 && chosen.to.file == 0) board.blackQueenSide = false;
+            if (chosen.to.rank == 0 && chosen.to.file == 7) board.blackKingSide = false;
+        }
+
+        if (board.toMove == Side::Black) {
+            ++board.fullMove;
+        }
+        board.toMove = (board.toMove == Side::White) ? Side::Black : Side::White;
+
+        return std::make_optional(board);
+    }
+
+    return std::nullopt;
+}
 
 double Board::evaluate() const {
     constexpr std::array<double, 64> evalKing = {{

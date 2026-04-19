@@ -172,9 +172,22 @@ struct Board {
         children(); // Get the children of this board
         evaluate(); // Get the score of this board
     }
+    Board(const Board &obj) {
+        board = obj.board;
+        whiteKingSide = obj.whiteKingSide;
+        whiteQueenSide = obj.whiteQueenSide;
+        blackKingSide = obj.blackKingSide;
+        blackQueenSide = obj.blackQueenSide;
+        toMove = obj.toMove;
+        enPassant = obj.enPassant;
+        halfMove = obj.halfMove;
+        fullMove = obj.fullMove;
+        moves = obj.moves;
+        score = obj.score;
+    }
 
     void children();
-    static std::optional<Board> update(const Board& b, const Move& m);
+    static std::optional<Board> update(const Board& b, const Move& move);
     double evaluate() const;
     Side checkmate();
     void check_moves();
